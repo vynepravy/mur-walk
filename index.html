@@ -1,0 +1,1149 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0e1114">
+<title>Муршрут — побудь котом пару минут</title>
+<meta name="description" content="Пиксельная игра от RGBY: загрузи логотип или картинку с чётким силуэтом — и котёнок выйдет на ней погулять. Пара минут отдыха.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- превью ссылки: при публикации сборка подставляет абсолютный адрес картинки -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Муршрут — побудь котом пару минут">
+<meta property="og:description" content="Загрузи логотип или картинку с чётким силуэтом — и котёнок выйдет на ней погулять. Пиксельная игра-передышка от RGBY.">
+<meta property="og:image" content="https://vynepravy.github.io/mur-walk/og.png">
+<meta property="og:url" content="https://vynepravy.github.io/mur-walk/">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+/* шрифты лежат рядом с игрой (OFL, см. fonts/README.txt) */
+@font-face{font-family:"Pixelify Sans";font-weight:400 700;font-display:swap;src:url(fonts/pixelify-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Pixelify Sans";font-weight:400 700;font-display:swap;src:url(fonts/pixelify-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+/* в Pixelify Sans нет заглавных «О» и «П» — для них берём буквы из Press Start 2P, уменьшенные до размера Pixelify */
+@font-face{font-family:"Pixelify Sans";font-weight:400 700;font-display:swap;src:url(fonts/pressstart-cyrillic.woff2) format("woff2");unicode-range:U+041E-041F;size-adjust:72%}
+@font-face{font-family:"Press Start 2P";font-weight:400;font-display:swap;src:url(fonts/pressstart-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Press Start 2P";font-weight:400;font-display:swap;src:url(fonts/pressstart-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+:root{--bg:#0e1114;--fg:#f4eee4;--mut:#9aa3a0;--neon:#c6ff00;--px:"Press Start 2P",monospace;--tx:"Pixelify Sans",system-ui,sans-serif}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:var(--tx);overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;-webkit-tap-highlight-color:transparent}
+#game{position:fixed;left:0;top:0;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+.hud{position:fixed;left:0;right:0;top:0;display:flex;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 16px) 16px 0;pointer-events:none;font-family:var(--px);text-shadow:0 2px 0 #0009}
+.hud span{display:block;font-size:8px;opacity:.75;margin-bottom:8px}
+.hud b{font-size:18px;font-weight:400}
+.hud .r{text-align:right}
+.hint{position:fixed;left:20px;right:20px;bottom:calc(env(safe-area-inset-bottom) + 40px);text-align:center;font-size:16px;line-height:1.45;pointer-events:none;transition:opacity .5s;text-shadow:0 2px 0 #000a}
+.hint b{color:var(--neon);font-weight:600}
+/* шкала скорости — цепочка кошачьих следов: чем быстрее бежит, тем больше лапок светится */
+.speed{position:fixed;left:16px;bottom:calc(env(safe-area-inset-bottom) + 14px);display:flex;gap:7px;align-items:flex-end;pointer-events:none}
+.speed svg{width:18px;height:18px;color:#ffffff;opacity:.16;transition:opacity .12s}
+.speed svg:nth-child(odd){transform:translateY(-6px)}
+.speed svg.on{color:var(--neon);opacity:1}
+.mute{position:fixed;right:10px;bottom:calc(env(safe-area-inset-bottom) + 6px);height:28px;padding:0 6px;border:0;background:none;color:var(--mut);font:13px var(--tx);z-index:4}
+#warn{position:fixed;transform:translate(-50%,-100%);font:600 16px var(--tx);color:#ff7a3d;text-shadow:0 2px 0 #000a;pointer-events:none;z-index:2;white-space:nowrap}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;background:rgba(14,17,20,.6);text-align:center;z-index:5;overflow:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+/* финал — один кадр: постер во всю высоту, под ним кнопки */
+#end{background:rgba(14,17,20,.94);gap:12px;padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px)}
+#end .row{margin:0;gap:8px;flex-wrap:nowrap}#end button{font-size:15px;padding:10px 12px;white-space:nowrap}
+.screen[hidden],.hud[hidden],.hint[hidden],.speed[hidden],#warn[hidden]{display:none}
+.tag{font-family:var(--px);font-size:8px;color:var(--mut)}
+h1{font-family:var(--px);font-size:28px;font-weight:400;margin:4px 0;color:var(--neon);text-shadow:0 3px 0 #2f3a12}
+p{margin:0;max-width:330px;color:var(--mut);font-size:15px;line-height:1.45}
+p.lead{color:var(--fg);font-size:17px}
+button,.btn{appearance:none;border:2px solid #ffffff40;background:transparent;color:var(--fg);font:16px var(--tx);padding:12px 18px;cursor:pointer;display:inline-block}
+.primary{background:var(--neon);color:#141a0a;border-color:var(--neon);font-weight:600}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+.small{font-size:13px}
+#poster{max-height:calc(100vh - 96px - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-height:calc(100dvh - 96px - env(safe-area-inset-top) - env(safe-area-inset-bottom));max-width:100%;min-height:0;flex-shrink:1;image-rendering:pixelated;box-shadow:0 12px 40px #000a}
+.err{color:#ff7a3d;font-size:14px;min-height:1em}
+#file{display:none}
+#dbg{position:fixed;left:8px;top:calc(env(safe-area-inset-top) + 70px);font:11px/1.35 ui-monospace,Consolas,monospace;color:#9f9;white-space:pre;pointer-events:none;z-index:3}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div class="hud" id="hud" hidden>
+  <div><span>ПРОЙДЕНО</span><b id="pct">0%</b></div>
+  <div class="r"><span>ВРЕМЯ</span><b id="time">0:00.0</b></div>
+</div>
+<div class="speed" id="speed" hidden></div>
+<div class="hint" id="hint" hidden></div>
+<div id="warn" hidden>отпусти</div>
+<button class="mute" id="mute" aria-label="Звук">звук</button>
+<div id="dbg"></div>
+
+<section class="screen" id="intro">
+  <div class="tag">ОТДОХНИ. ПОБУДЬ КОТОМ ПАРУ МИНУТ</div>
+  <h1>МУРШРУТ</h1>
+  <p class="lead">Город спит. Прогуляйся по своему логотипу.</p>
+  <p>Обойди логотип как можно быстрее и постарайся не свалиться.</p>
+  <div class="row">
+    <button class="primary" id="btnDemo">Выйти погулять</button>
+    <label class="btn" for="file">Загрузить свой логотип</label>
+    <input type="file" id="file" accept="image/*">
+  </div>
+  <div class="err" id="err"></div>
+  <p class="small">Логотип никуда не сохраняется: всё происходит прямо в браузере. Подойдёт логотип или картинка с чётким силуэтом, лучше всего PNG или SVG на прозрачном фоне.</p>
+</section>
+
+<section class="screen" id="end" hidden>
+  <img id="poster" alt="Постер заезда">
+  <div class="row">
+    <button class="primary" id="btnSave">Сохранить</button>
+    <button id="btnAgain">Ещё раз</button>
+    <button id="btnOther">Другой логотип</button>
+  </div>
+</section>
+
+<script>
+'use strict';
+// ---------- параметры (любой можно переопределить в адресе: ?VMAX=500&ALAT=1500) ----------
+const Q = new URLSearchParams(location.search);
+const DEBUG = Q.has('debug');
+const C = {
+  MASK: 320,      // разрешение маски логотипа, px по длинной стороне
+  EPS: 0.9,       // упрощение контура, px маски
+  FILLET: 10,     // скругление углов, мировые единицы
+  STEP: 6,        // шаг точек трассы
+  TARGET_L: 9000, // длина трассы после нормализации
+  MINLOOP: 0.03,  // отбрасываем контуры короче этой доли от самого длинного
+  VMIN: 60, VMAX: 350, ACC: 320, BRAKE: 800,   // на телефоне 460 казалось слишком быстро
+  ALAT: 1050,     // «сцепление»: безопасная скорость = sqrt(ALAT * радиус); снижено вместе со скоростью, чтобы углы остались сложными
+  SLIPK: 22, SLIPREC: 1.6,
+  GAP: 0,         // сколько трассы теряется при срыве (сейчас срыв стоит времени, а не куска рисунка)
+  PEN: 3,         // штраф за срыв, секунд
+  CYCLE: 40,      // ночь → рассвет, секунд; потом снова наступает ночь
+  NIGHT_BACK: 5,  // за сколько секунд рассвет сменяется следующей ночью
+  FALL_T: 1.2, JUMP_V: 330,
+  PX: 0,          // размер «пикселя» игры в CSS-пикселях, 0 — подобрать само
+  ISO_W: 430,     // ширина логотипа в изометрии, пиксели игры
+  ELEV: 10,       // высота верха плиты над землёй
+  WALL: 64,       // высота стен плиты (уходят в дымку)
+  SLACK: 1.3,     // время = идеальный заезд по этой трассе × SLACK
+};
+for (const k in C) if (Q.has(k)) C[k] = parseFloat(Q.get(k));
+
+const RGBY_W = 3549, RGBY_H = 3068;
+const RGBY_PATH = "M2560.69 895.829V592.002H3549V1356.5H3322.39L3291.14 1197.7C3245.54 1257.83 3188.23 1299.34 3119.29 1322.14C3050.26 1345.02 2957.8 1356.42 2841.9 1356.42H1748.05C1580.11 1356.42 1436.79 1330.64 1318.34 1279.01C1199.81 1227.38 1109.640 1151.26 1047.83 1050.63C985.932 950.011 955.027 826.507 955.027 680.122V678.166C955.027 531.781 985.932 408.022 1047.83 306.718C1109.64 205.415 1199.81 129.033 1318.34 77.4026C1436.79 25.7725 1580.11 0 1748.05 0H2908.3C3013.75 0 3101.97 4.93335 3172.95 14.715C3243.93 24.4966 3306.76 41.8484 3361.44 66.6853C3416.12 91.5222 3466.9 126.821 3513.76 172.582L3269.57 447.064C3235.7 407.852 3191.71 382.335 3137.71 370.597C3083.63 358.859 3007.13 352.99 2908.21 352.99H1747.97C1660.68 352.99 1587.15 364.473 1527.21 387.268C1467.27 410.149 1422.01 445.788 1391.45 494.101C1360.79 542.499 1345.51 603.91 1345.51 678.336V680.292C1345.51 753.527 1360.79 814.258 1391.45 862.571C1422.01 910.969 1467.270 946.523 1527.21 969.404C1587.07 992.284 1660.68 1003.68 1747.97 1003.68H2841.82C2905.58 1003.68 2958.65 1001.73 3001.01 997.813C3043.3 993.901 3081.08 985.735 3114.28 973.317C3147.48 960.898 3175.16 942.27 3197.32 917.434V895.829H2560.52H2560.69ZM492.202 1356.5L376.39 950.436C370.701 950.521 365.182 950.776 359.324 950.776H331.984V1356.59H0V0H359.409C510.457 0 623.128 32.0668 697.336 96.0303C771.544 160.079 808.648 258.746 808.648 392.031V572.354C808.648 657.327 792.006 727.585 758.808 783.127C735.883 821.488 704.807 853.13 666.09 878.392L843.799 1356.5H492.202ZM476.579 419.505C476.579 382.93 467.155 356.137 448.221 339.125C429.371 322.199 399.654 313.608 359.324 313.608H331.984V648.821H359.324C399.654 648.821 429.286 640.315 448.221 623.304C467.07 606.377 476.579 579.499 476.579 542.924V419.42V419.505ZM2309.88 1801.44C2402.93 1861.58 2449.55 1955.05 2449.55 2081.79C2449.55 2170.68 2428.07 2237.36 2385.1 2281.76C2342.14 2326.25 2278.29 2356.27 2193.73 2371.92C2295.27 2382.38 2376.36 2411.47 2436.9 2459.19C2497.44 2506.91 2527.75 2585.67 2527.75 2695.4C2527.75 2819.58 2481.13 2912.72 2388.08 2974.73C2294.93 3036.82 2160.53 3067.86 1984.77 3067.86H4.0755V1711.36H1904.62C2081.73 1711.36 2216.82 1741.47 2309.88 1801.52V1801.44ZM394.73 2762H1984.69C2034.19 2762 2071.88 2753.49 2097.95 2736.48C2124.02 2719.55 2137.01 2690.72 2137.01 2650.23C2137.01 2609.74 2123.68 2582.61 2096.93 2564.92C2070.19 2547.31 2032.74 2538.47 1984.6 2538.47H394.73V2761.91V2762ZM394.73 2236.68H1900.71C1954.12 2236.68 1993.77 2229.54 2019.84 2215.08C2045.9 2200.7 2058.89 2171.95 2058.89 2128.83C2058.89 2101.35 2052.02 2079.49 2038.35 2063.16C2024.68 2046.83 2006.42 2035.09 1983.67 2027.86C1960.83 2020.72 1934.51 2017.06 1904.53 2017.06H394.73V2236.6V2236.68ZM3035.49 2303.28L3133.13 1711.28H3498.4L3201.48 2612.98V3067.78H2869.41V2630.67L2572.49 1711.28H2937.76L3035.4 2303.28H3035.49Z";
+
+// ---------- маска логотипа ----------
+function makeMask(src) {
+  const w = src.type === 'rgby' ? RGBY_W : (src.img.naturalWidth || src.img.width);
+  const h = src.type === 'rgby' ? RGBY_H : (src.img.naturalHeight || src.img.height);
+  if (!w || !h) return null;
+  const s = C.MASK / Math.max(w, h);
+  const mw = Math.max(16, Math.round(w * s)), mh = Math.max(16, Math.round(h * s));
+  const c = document.createElement('canvas'); c.width = mw; c.height = mh;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  if (src.type === 'rgby') { g.setTransform(mw / w, 0, 0, mh / h, 0, 0); g.fillStyle = '#000'; g.fill(new Path2D(RGBY_PATH), 'evenodd'); }
+  else g.drawImage(src.img, 0, 0, mw, mh);
+  const d = g.getImageData(0, 0, mw, mh).data;
+
+  // фон: прозрачный по краям — режем по альфе, иначе по цвету краёв
+  const border = [];
+  for (let x = 0; x < mw; x++) border.push(x, (mh - 1) * mw + x);
+  for (let y = 0; y < mh; y++) border.push(y * mw, y * mw + mw - 1);
+  let transp = 0, bn = 0, br = 0, bgc = 0, bb = 0;
+  for (const i of border) {
+    if (d[i * 4 + 3] < 40) transp++;
+    else { br += d[i * 4]; bgc += d[i * 4 + 1]; bb += d[i * 4 + 2]; bn++; }
+  }
+  // логотип может касаться краёв, поэтому прозрачность считаем по всей картинке
+  let transpAll = 0;
+  for (let i = 3; i < d.length; i += 16) if (d[i] < 40) transpAll++;
+  const alphaMode = transp > border.length * 0.5 || transpAll > d.length / 16 * 0.05;
+  if (bn) { br /= bn; bgc /= bn; bb /= bn; } else { br = bgc = bb = 255; }
+
+  const pw = mw + 2, ph = mh + 2, P = new Uint8Array(pw * ph);
+  const hueBins = new Array(12).fill(0); let fg = 0, satN = 0;
+  for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) {
+    const i = (y * mw + x) * 4, r = d[i], gg = d[i + 1], b = d[i + 2], a = d[i + 3];
+    let on;
+    if (alphaMode) on = a > 127;
+    else on = a > 127 && ((r - br) ** 2 + (gg - bgc) ** 2 + (b - bb) ** 2) > 70 * 70;
+    if (!on) continue;
+    P[(y + 1) * pw + x + 1] = 1; fg++;
+    const mx = Math.max(r, gg, b), mn = Math.min(r, gg, b);
+    if (mx > 60 && (mx - mn) / mx > 0.35) {
+      let hh;
+      if (mx === r) hh = ((gg - b) / (mx - mn) + 6) % 6; else if (mx === gg) hh = (b - r) / (mx - mn) + 2; else hh = (r - gg) / (mx - mn) + 4;
+      hueBins[Math.floor(hh * 2) % 12]++; satN++;
+    }
+  }
+  if (fg < mw * mh * 0.004 || fg > mw * mh * 0.97) return null;
+  let hue = null;
+  if (satN > fg * 0.05) { let bi = 0; hueBins.forEach((v, i) => { if (v > hueBins[bi]) bi = i; }); hue = bi * 30 + 15; }
+  return { P, pw, ph, hue };
+}
+
+// ---------- контуры: marching squares ----------
+function traceLoops(P, pw, ph) {
+  const adj = new Map();
+  const key = (X, Y) => X * 4096 + Y;
+  const link = (a, b) => { (adj.get(a) || adj.set(a, []).get(a)).push(b); (adj.get(b) || adj.set(b, []).get(b)).push(a); };
+  for (let y = 0; y < ph - 1; y++) for (let x = 0; x < pw - 1; x++) {
+    const c = P[y * pw + x] << 3 | P[y * pw + x + 1] << 2 | P[(y + 1) * pw + x + 1] << 1 | P[(y + 1) * pw + x];
+    if (c === 0 || c === 15) continue;
+    const T = key(2 * x + 1, 2 * y), R = key(2 * x + 2, 2 * y + 1), B = key(2 * x + 1, 2 * y + 2), L = key(2 * x, 2 * y + 1);
+    switch (c) {
+      case 1: case 14: link(L, B); break;
+      case 2: case 13: link(B, R); break;
+      case 3: case 12: link(L, R); break;
+      case 4: case 11: link(T, R); break;
+      case 6: case 9: link(T, B); break;
+      case 7: case 8: link(L, T); break;
+      case 5: link(T, R); link(L, B); break;
+      case 10: link(L, T); link(B, R); break;
+    }
+  }
+  const seen = new Set(), loops = [];
+  for (const start of adj.keys()) {
+    if (seen.has(start)) continue;
+    const loop = []; let prev = -1, cur = start;
+    for (let guard = 0; guard < 1e6; guard++) {
+      seen.add(cur); loop.push([Math.floor(cur / 4096) / 2 - 1, (cur % 4096) / 2 - 1]);
+      const n = adj.get(cur); if (!n || n.length !== 2) break;
+      const next = n[0] !== prev ? n[0] : n[1];
+      if (next === start) break;
+      prev = cur; cur = next;
+    }
+    if (loop.length > 8) loops.push(loop);
+  }
+  return loops;
+}
+
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+function perim(l) { let s = 0; for (let i = 0; i < l.length; i++) s += dist(l[i], l[(i + 1) % l.length]); return s; }
+
+function rdp(pts, eps) {
+  if (pts.length < 3) return pts.slice();
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+  const stack = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop(); const [ax, ay] = pts[a], [bx, by] = pts[b];
+    const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy) || 1e-9;
+    let md = 0, mi = -1;
+    for (let i = a + 1; i < b; i++) { const dd = Math.abs((pts[i][0] - ax) * dy - (pts[i][1] - ay) * dx) / len; if (dd > md) { md = dd; mi = i; } }
+    if (md > eps) { keep[mi] = 1; stack.push([a, mi], [mi, b]); }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+function simplifyClosed(l, eps) {
+  let far = 0, fd = 0;
+  for (let i = 1; i < l.length; i++) { const d = dist(l[0], l[i]); if (d > fd) { fd = d; far = i; } }
+  const a = rdp(l.slice(0, far + 1), eps), b = rdp(l.slice(far).concat([l[0]]), eps);
+  return a.slice(0, -1).concat(b.slice(0, -1));
+}
+// скругление углов постоянным радиусом (чтобы острые углы оставались острыми)
+function fillet(poly, R) {
+  const n = poly.length, out = [];
+  for (let i = 0; i < n; i++) {
+    const p0 = poly[(i - 1 + n) % n], p1 = poly[i], p2 = poly[(i + 1) % n];
+    const d1 = dist(p1, p0), d2 = dist(p1, p2);
+    const r = Math.min(R, d1 * 0.45, d2 * 0.45);
+    const a = [p1[0] + (p0[0] - p1[0]) / d1 * r, p1[1] + (p0[1] - p1[1]) / d1 * r];
+    const b = [p1[0] + (p2[0] - p1[0]) / d2 * r, p1[1] + (p2[1] - p1[1]) / d2 * r];
+    for (let k = 0; k <= 6; k++) {
+      const t = k / 6, u = 1 - t;
+      out.push([u * u * a[0] + 2 * u * t * p1[0] + t * t * b[0], u * u * a[1] + 2 * u * t * p1[1] + t * t * b[1]]);
+    }
+  }
+  return out;
+}
+function resampleClosed(pts, step) {
+  const out = [pts[0]], n = pts.length; let acc = 0;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n], seg = dist(a, b); if (seg < 1e-9) continue;
+    let t = 0;
+    while (acc + (seg - t) >= step) { t += step - acc; acc = 0; out.push([a[0] + (b[0] - a[0]) * t / seg, a[1] + (b[1] - a[1]) * t / seg]); }
+    acc += seg - t;
+  }
+  if (out.length > 2 && dist(out[out.length - 1], out[0]) < step * 0.5) out.pop();
+  return out;
+}
+// безопасная скорость по кривизне (окно ±w точек, потом минимум по соседям)
+function safeSpeeds(l) {
+  const n = l.length, w = 3, k = new Float32Array(n), vs = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = l[(i - w + n) % n], b = l[i], c = l[(i + w) % n];
+    const a1 = Math.atan2(b[1] - a[1], b[0] - a[0]), a2 = Math.atan2(c[1] - b[1], c[0] - b[0]);
+    let da = Math.abs(a2 - a1); if (da > Math.PI) da = 2 * Math.PI - da;
+    k[i] = da / (w * C.STEP);
+  }
+  for (let i = 0; i < n; i++) {
+    let mk = 0; for (let j = -2; j <= 2; j++) mk = Math.max(mk, k[(i + j + n) % n]);
+    vs[i] = Math.max(C.VMIN * 1.15, Math.sqrt(C.ALAT / Math.max(mk, 1e-5)));
+  }
+  return vs;
+}
+
+function nightHue() {
+  const h = new Date().getHours();
+  if (h < 6) return 285; if (h < 11) return 190; if (h < 17) return 75; if (h < 21) return 330; return 265;
+}
+
+// ---------- уровень ----------
+function buildLevel(src) {
+  const m = makeMask(src); if (!m) throw new Error('mask');
+  let loops = traceLoops(m.P, m.pw, m.ph).map(l => simplifyClosed(l, C.EPS)).filter(l => l.length >= 3);
+  const per = loops.map(perim), maxP = Math.max(0, ...per);
+  loops = loops.filter((l, i) => per[i] >= Math.max(12, maxP * C.MINLOOP));
+  if (!loops.length) throw new Error('loops');
+  const total = loops.reduce((s, l) => s + perim(l), 0), k = C.TARGET_L / total;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const l of loops) for (const p of l) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const wl = loops.map(l => {
+    const pts = resampleClosed(fillet(l.map(p => [(p[0] - cx) * k, (p[1] - cy) * k]), C.FILLET), C.STEP);
+    return { pts, vs: safeSpeeds(pts) };
+  });
+
+  // маршрут: жадно от верхнего левого угла, каждый контур — полный круг, между ними прыжок
+  let start = 0, si = 0, best = 1e9;
+  wl.forEach((l, li) => l.pts.forEach((p, pi) => { if (p[0] + p[1] < best) { best = p[0] + p[1]; start = li; si = pi; } }));
+  // старт не на углу: сдвигаемся до прямого участка
+  { const l = wl[start], n = l.pts.length;
+    for (let j = 0; j < n; j++) {
+      let ok = true; for (let q = 0; q < 15; q++) if (l.vs[(si + j + q) % n] < C.VMAX) { ok = false; break; }
+      if (ok) { si = (si + j) % n; break; }
+    } }
+  const route = [], used = new Set();
+  let cur = start, entry = si;
+  while (true) {
+    used.add(cur);
+    const l = wl[cur], n = l.pts.length;
+    for (let j = 0; j <= n; j++) { const q = (entry + j) % n; route.push({ x: l.pts[q][0], y: l.pts[q][1], h: 0, j: false, vs: l.vs[q] }); }
+    const ex = l.pts[entry];
+    let nb = -1, ni = 0, nd = 1e9;
+    wl.forEach((o, li) => { if (used.has(li)) return; o.pts.forEach((p, pi) => { const d = dist(ex, p); if (d < nd) { nd = d; nb = li; ni = pi; } }); });
+    if (nb < 0) break;
+    const to = wl[nb].pts[ni], steps = Math.max(2, Math.ceil(nd / C.STEP)), hmax = Math.min(140, 30 + nd * 0.3);
+    for (let j = 1; j < steps; j++) {
+      const t = j / steps;
+      route.push({ x: ex[0] + (to[0] - ex[0]) * t, y: ex[1] + (to[1] - ex[1]) * t, h: Math.sin(Math.PI * t) * hmax, j: true, vs: Infinity });
+    }
+    cur = nb; entry = ni;
+  }
+  const N = route.length, cum = new Float32Array(N);
+  let runLen = 0, jumpLen = 0, runN = 0;
+  for (let i = 0; i < N; i++) {
+    if (i) { const d = Math.hypot(route[i].x - route[i - 1].x, route[i].y - route[i - 1].y); cum[i] = cum[i - 1] + d; if (route[i].j || route[i - 1].j) jumpLen += d; else runLen += d; }
+    const a = route[Math.max(0, i - 1)], b = route[Math.min(N - 1, i + 1)];
+    const tl = Math.hypot(b.x - a.x, b.y - a.y) || 1; route[i].tx = (b.x - a.x) / tl; route[i].ty = (b.y - a.y) / tl;
+    if (!route[i].j) runN++;
+  }
+  // идеальный профиль скорости: разгон вперёд, торможение назад — от него считаем лимит времени
+  const vp = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    const cap = route[i].j ? C.JUMP_V : Math.min(C.VMAX, route[i].vs);
+    vp[i] = i ? Math.min(cap, Math.sqrt(vp[i - 1] ** 2 + 2 * C.ACC * (cum[i] - cum[i - 1]))) : C.VMIN;
+  }
+  for (let i = N - 2; i >= 0; i--) if (!route[i].j) vp[i] = Math.min(vp[i], Math.sqrt(vp[i + 1] ** 2 + 2 * C.BRAKE * (cum[i + 1] - cum[i])));
+  let ideal = 0;
+  for (let i = 1; i < N; i++) ideal += (cum[i] - cum[i - 1]) / Math.max(C.VMIN, (vp[i] + vp[i - 1]) / 2);
+  const ground = new Path2D();
+  for (const l of wl) { l.pts.forEach((p, i) => i ? ground.lineTo(p[0], p[1]) : ground.moveTo(p[0], p[1])); ground.closePath(); }
+  return {
+    route, cum, len: cum[N - 1], runN, drawn: new Uint8Array(N), drawnN: 0, ground, loops: wl,
+    hue: m.hue != null ? m.hue : nightHue(), hueFromLogo: m.hue != null,
+    time: ideal * C.SLACK + 2, ideal,
+    bbox: [(x0 - cx) * k, (y0 - cy) * k, (x1 - cx) * k, (y1 - cy) * k],
+  };
+}
+
+// ---------- звук: 8-битный эмбиент + мягкие шаги ----------
+// Аккорды Am–F–C–G: арпеджио на приглушённом «квадрате» и треугольный бас; на скорости фильтр открывается.
+// Шаги — тихие синусы с мягкой атакой, как калимба. Без шума.
+const S = { on: true, ac: null, scale: [], step: 0, beat: 0, nextT: 0, timer: null };
+const CHORDS = [[220, 261.63, 329.63], [174.61, 220, 261.63], [261.63, 329.63, 392], [196, 246.94, 293.66]];
+const PENTA = [440, 523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66];
+const MOTIF = [0, 2, 4, 3, 5, 4, 2, 1, 0, 2, 4, 6, 5, 3, 2, 1];
+const E8 = 60 / 84 / 2;
+function sInit() {
+  if (S.ac) { S.ac.resume && S.ac.resume(); return; }
+  try { S.ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  const ac = S.ac;
+  S.master = ac.createGain(); S.master.gain.value = S.on ? 0.7 : 0; S.master.connect(ac.destination);
+  S.bus = ac.createGain(); S.bus.connect(S.master);
+  const dl = ac.createDelay(1), fb = ac.createGain(), lp = ac.createBiquadFilter(), wet = ac.createGain();
+  dl.delayTime.value = 0.27; fb.gain.value = 0.35; lp.type = 'lowpass'; lp.frequency.value = 1300; wet.gain.value = 0.3;
+  S.bus.connect(wet); wet.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(S.master);
+  S.mf = ac.createBiquadFilter(); S.mf.type = 'lowpass'; S.mf.frequency.value = 1200;
+  S.mg = ac.createGain(); S.mg.gain.value = 0; S.mf.connect(S.mg); S.mg.connect(S.bus);
+  // «квадрат» со скважностью 25% и срезанными верхними гармониками — мягче обычного
+  const n = 24, re = new Float32Array(n), im = new Float32Array(n);
+  for (let k = 1; k < n; k++) re[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * 0.25) * Math.pow(0.82, k);
+  S.pulse = ac.createPeriodicWave(re, im);
+  S.scale = PENTA.map(f => f * 0.75);
+}
+function sNote(type, f, t, dur, vol, cutoff, attack, dest) {
+  if (!S.ac || !f) return; const ac = S.ac;
+  const o = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
+  if (type === 'pulse') o.setPeriodicWave(S.pulse); else o.type = type;
+  o.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = cutoff || 2000;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + (attack || 0.008)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(lp); lp.connect(g); g.connect(dest || S.bus); o.start(t); o.stop(t + dur + 0.05);
+}
+function sSchedule() {
+  while (S.nextT < S.ac.currentTime + 0.25) {
+    const ch = CHORDS[Math.floor(S.beat / 8) % 4], pos = S.beat % 8;
+    sNote('pulse', ch[[0, 1, 2, 1][pos % 4]] * 2, S.nextT, 0.3, 0.035, 2400, 0.008, S.mf);
+    if (pos === 0 || pos === 4) sNote('triangle', ch[0] / 2, S.nextT, 0.9, 0.11, 900, 0.008, S.mf);
+    S.nextT += E8; S.beat++;
+  }
+}
+function sMusic(on) {
+  if (!S.ac) return; const t = S.ac.currentTime;
+  S.mg.gain.setTargetAtTime(on ? 1 : 0, t, on ? 0.8 : 0.4);
+  clearTimeout(S.offAt);
+  if (on && !S.timer) { S.nextT = t + 0.05; S.timer = setInterval(sSchedule, 50); }
+  if (!on) S.offAt = setTimeout(() => { clearInterval(S.timer); S.timer = null; }, 1500);
+}
+function sUpdate(v) { if (S.ac) S.mf.frequency.setTargetAtTime(900 + 1600 * (v / C.VMAX), S.ac.currentTime, 0.2); }
+function sPluck(f, vol, dur) { if (S.ac) sNote('sine', f, S.ac.currentTime, dur || 0.6, Math.min(vol, 0.035), 1600, 0.012); }
+function sStep() {
+  if (S.ac) { const f = S.scale[MOTIF[S.step % MOTIF.length]], t = S.ac.currentTime; sNote('sine', f, t, 0.45, 0.026, 1400, 0.018); sNote('sine', f / 2, t, 0.5, 0.012, 900, 0.025); }
+  S.step++;
+}
+function sWarn() { if (!S.ac) return; const t = S.ac.currentTime; sNote('pulse', 1318.5, t, 0.12, 0.016, 2600); sNote('pulse', 1046.5, t + 0.1, 0.16, 0.014, 2600); }
+function sBlip(f0, f1, dur, vol, type) {
+  if (!S.ac) return; const ac = S.ac, t = ac.currentTime;
+  const o = ac.createOscillator(), g = ac.createGain(); o.type = type || 'sine';
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(S.bus); o.start(t); o.stop(t + dur + 0.05);
+}
+// «мяу» при срыве: тот же мягкий «квадрат», высота «ми-а-у» — вверх и вниз, форманта гласной плывёт и-а-у,
+// лёгкое вибрато; каждый раз чуть другая высота, чтобы не надоедало
+function sMeow() {
+  if (!S.ac) return;
+  const ac = S.ac, t = ac.currentTime + 0.01, k = 0.9 + Math.random() * 0.25, d = 0.55;
+  const o = ac.createOscillator(); o.setPeriodicWave(S.pulse);
+  o.frequency.setValueAtTime(430 * k, t); o.frequency.linearRampToValueAtTime(760 * k, t + 0.12);
+  o.frequency.linearRampToValueAtTime(820 * k, t + 0.22); o.frequency.exponentialRampToValueAtTime(390 * k, t + d);
+  const vib = ac.createOscillator(), vg = ac.createGain(); vib.frequency.value = 7; vg.gain.value = 12 * k; vib.connect(vg); vg.connect(o.frequency);
+  const f1 = ac.createBiquadFilter(); f1.type = 'bandpass'; f1.Q.value = 3.5;
+  f1.frequency.setValueAtTime(1000, t); f1.frequency.linearRampToValueAtTime(1600, t + 0.15); f1.frequency.linearRampToValueAtTime(650, t + d);
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+  const dry = ac.createGain(); dry.gain.value = 0.35;
+  const env = ac.createGain();
+  env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(0.18, t + 0.04);
+  env.gain.setValueAtTime(0.17, t + 0.28); env.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  o.connect(f1); f1.connect(env); o.connect(lp); lp.connect(dry); dry.connect(env); env.connect(S.bus);
+  o.start(t); vib.start(t); o.stop(t + d + 0.05); vib.stop(t + d + 0.05);
+}
+function sFinish() { if (!S.ac) return; const t = S.ac.currentTime; [0, 2, 4, 5, 7].forEach((n, i) => sNote('pulse', PENTA[n], t + i * 0.13, 0.9, 0.035, 2400)); }
+
+// ---------- состояние ----------
+const $ = id => document.getElementById(id);
+const cv = $('game'), ctx = cv.getContext('2d');
+const tmp = document.createElement('canvas'), tctx2 = tmp.getContext('2d');
+let W = 0, H = 0, PX = 2, LW = 0, LH = 0, L = null;
+const HIT = document.createElement('canvas').getContext('2d');   // проверка «точка внутри логотипа»
+const G = { state: 'intro', s: 0, i: 0, v: 0, slip: 0, hold: false, t: 0, fall: null, falls: [], auto: Q.has('auto'),
+  cam: { x: 0, y: 0 }, tan: { x: 1, y: 0 }, phase: 0, dir: 1, src: null, fps: 60, endReason: '', dawn: 0.1 };
+
+function resize() {
+  W = innerWidth; H = innerHeight;
+  // один «пиксель» игры — целое число CSS-пикселей, чтобы картинка оставалась чёткой
+  PX = C.PX || Math.max(2, Math.floor(Math.min(W, H) / 300));
+  LW = Math.ceil(W / PX); LH = Math.ceil(H / PX);
+  cv.width = tmp.width = LW; cv.height = tmp.height = LH;
+  cv.style.width = LW * PX + 'px'; cv.style.height = LH * PX + 'px';
+  ctx.imageSmoothingEnabled = false;
+}
+addEventListener('resize', resize); resize();
+
+function startLevel(src) {
+  $('err').textContent = '';
+  try { L = buildLevel(src); buildArt(); } catch (e) {
+    console.warn(e); $('err').textContent = 'Не получилось разглядеть силуэт. Попробуй PNG с прозрачным фоном или картинку попроще.';
+    G.state = 'intro'; $('intro').hidden = false; return;
+  }
+  G.src = src; sInit(); S.step = 0;
+  resetRun();
+}
+function resetRun() {
+  L.drawn.fill(0); L.drawnN = 0; clearTrail();
+  Object.assign(G, { s: 0, i: 0, v: C.VMIN, slip: 0, t: 0, fall: null, falls: [], state: 'ready', phase: 0, warn: false, stepAcc: 0 });
+  clearTimeout(G.hintTimer);
+  const p = L.route[0]; G.tan = { x: p.tx, y: p.ty }; G.cam = { x: p.x, y: p.y };
+  $('intro').hidden = true; $('end').hidden = true; $('hud').hidden = false; $('speed').hidden = false; $('hint').hidden = false; $('hint').style.opacity = 1;
+  hudUpdate();
+}
+const TOUCH = matchMedia('(pointer: coarse)').matches;
+const HINT = TOUCH
+  ? '<b>Держи палец на экране</b> — котёнок бежит быстрее.<br>Отпусти — тормозит. Оранжевый пунктир — крутой поворот.<br>Между буквами котёнок прыгает сам.<br><br>Коснись и держи, чтобы начать'
+  : '<b>Зажми кнопку мыши или пробел</b> — котёнок бежит быстрее.<br>Отпусти — тормозит. Оранжевый пунктир — крутой поворот.<br>Между буквами котёнок прыгает сам.<br><br>Зажми, чтобы начать';
+$('hint').innerHTML = HINT;
+function beginRun() {
+  G.state = 'run'; sInit(); sMusic(true);
+  // инструкция остаётся на экране первые секунды заезда
+  clearTimeout(G.hintTimer); G.hintTimer = setTimeout(() => { $('hint').style.opacity = 0; }, 3500);
+}
+
+// итог = время заезда + штраф за каждый срыв; лучшее время хранится в браузере
+const finalTime = () => G.t + G.falls.length * C.PEN;
+function bestKey() { return 'murshrut.best.' + L.runN + '.' + Math.round(L.len); }
+function endRun(reason) {
+  G.state = 'end'; G.endReason = reason; G.hold = false; sUpdate(0);
+  if (reason === 'finish') sFinish();
+  $('hud').hidden = true; $('speed').hidden = true; $('hint').hidden = true; $('warn').hidden = true;
+  const fin = finalTime();
+  let best = null; try { best = parseFloat(localStorage.getItem(bestKey())); } catch (e) {}
+  G.best = best > 0 ? best : null;
+  G.record = !G.best || fin < G.best;
+  if (G.record) try { localStorage.setItem(bestKey(), fin.toFixed(2)); } catch (e) {}
+  const pc = makePoster();
+  $('poster').src = pc.toDataURL('image/png');
+  G.posterBlob = null; pc.toBlob(b => { G.posterBlob = b; }, 'image/png');
+  setTimeout(() => { if (G.state === 'end') $('end').hidden = false; }, reason === 'finish' ? 700 : 400);
+}
+
+// ---------- ввод ----------
+function isUI(e) { return e.target.closest && e.target.closest('button,label,input,a,.screen'); }
+addEventListener('pointerdown', e => { if (isUI(e)) return; G.hold = true; if (G.state === 'ready') beginRun(); });
+addEventListener('pointerup', () => { G.hold = false; });
+addEventListener('pointercancel', () => { G.hold = false; });
+addEventListener('blur', () => { G.hold = false; });
+addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); G.hold = true; if (G.state === 'ready') beginRun(); }
+  if (e.code === 'KeyR' && L && G.state !== 'intro') resetRun();
+  if (e.code === 'KeyA' && DEBUG) G.auto = !G.auto;
+});
+addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'ArrowUp') G.hold = false; });
+
+$('btnDemo').onclick = () => { sInit(); startLevel({ type: 'rgby' }); };
+$('file').onchange = e => {
+  const f = e.target.files[0]; if (!f) return; sInit();
+  const url = URL.createObjectURL(f), img = new Image();
+  img.onload = () => { startLevel({ type: 'img', img }); URL.revokeObjectURL(url); };
+  img.onerror = () => { $('err').textContent = 'Этот файл не открылся как картинка.'; };
+  img.src = url; e.target.value = '';
+};
+$('btnAgain').onclick = () => resetRun();
+$('btnOther').onclick = () => { G.state = 'intro'; $('end').hidden = true; $('intro').hidden = false; };
+$('btnSave').onclick = async () => {
+  const b = G.posterBlob; if (!b) return;
+  const file = new File([b], 'murshrut.png', { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'murshrut.png'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+};
+$('mute').onclick = () => { S.on = !S.on; $('mute').style.opacity = S.on ? 1 : .4; if (S.master) S.master.gain.value = S.on ? 0.6 : 0; };
+
+// ---------- симуляция ----------
+function advanceIndex(mark) {
+  const R = L.route, N = R.length;
+  while (G.i < N - 1 && L.cum[G.i + 1] <= G.s) {
+    G.i++;
+    if (mark && !R[G.i].j && !L.drawn[G.i]) { L.drawn[G.i] = 1; L.drawnN++; }
+  }
+}
+function posAt() {
+  const R = L.route, a = R[G.i], b = R[Math.min(R.length - 1, G.i + 1)];
+  const seg = L.cum[Math.min(R.length - 1, G.i + 1)] - L.cum[G.i];
+  const t = seg > 0 ? Math.min(1, (G.s - L.cum[G.i]) / seg) : 0;
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, h: a.h + (b.h - a.h) * t, tx: a.tx, ty: a.ty, j: a.j };
+}
+function autoHold(dt) {
+  const R = L.route; let lim = Infinity;
+  for (let k = G.i; k < R.length && L.cum[k] - G.s < 400; k++) {
+    const d = Math.max(0, L.cum[k] - G.s);
+    lim = Math.min(lim, Math.sqrt(R[k].vs * R[k].vs + 2 * C.BRAKE * d) * 0.93);
+  }
+  return G.v + C.ACC * dt < lim;
+}
+function update(dt) {
+  if (G.state !== 'run') return;
+  const R = L.route;
+  G.t += dt;
+  if (G.fall) {
+    const f = G.fall; f.t += dt; f.x += f.vx * dt; f.y += f.vy * dt; f.vh -= 900 * dt; f.h += f.vh * dt; f.rot += f.spin * dt;
+    if (f.t >= C.FALL_T) {
+      G.s = Math.min(L.len, G.s + C.GAP); advanceIndex(false);
+      while (G.i < R.length - 1 && R[G.i].j) G.i++;
+      G.s = L.cum[G.i]; G.v = C.VMIN; G.slip = 0; G.fall = null;
+    }
+  } else {
+    const p = R[G.i];
+    const hold = G.auto ? autoHold(dt) : G.hold;
+    if (p.j) G.v = Math.max(G.v, C.JUMP_V);
+    else G.v = Math.min(C.VMAX, Math.max(C.VMIN, G.v + (hold ? C.ACC : -C.BRAKE) * dt));
+    // пора тормозить: с текущей скорости уже не успеть сбросить до ближайшего поворота
+    let lim = Infinity;
+    if (!p.j) for (let k = G.i; k < R.length && L.cum[k] - G.s < 420; k++) {
+      if (R[k].j) break;
+      lim = Math.min(lim, Math.sqrt(R[k].vs * R[k].vs + 2 * C.BRAKE * Math.max(0, L.cum[k] - G.s)) * 0.97);
+    }
+    const warn = G.v > lim;
+    if (warn && !G.warn && performance.now() - (G.warnAt || 0) > 700) { sWarn(); G.warnAt = performance.now(); }
+    G.warn = warn;
+    if (!p.j) {
+      const r = G.v / p.vs;
+      if (r > 1) G.slip += (r - 1) * C.SLIPK * dt; else G.slip = Math.max(0, G.slip - C.SLIPREC * dt);
+    } else G.slip = Math.max(0, G.slip - C.SLIPREC * dt);
+    if (G.slip >= 1) {
+      // котёнок слетает наружу, через край плиты; если край дальний — исчезает за ним
+      const q = posAt(); let nx = -q.ty, ny = q.tx;
+      if (HIT.isPointInPath(L.ground, q.x + nx * 14, q.y + ny * 14, 'evenodd')) { nx = -nx; ny = -ny; }
+      G.fall = { x: q.x, y: q.y, vx: (nx * 0.55 + q.tx * 0.25) * G.v, vy: (ny * 0.55 + q.ty * 0.25) * G.v, h: 0, vh: 140, t: 0, rot: 0, spin: (Math.random() < .5 ? -1 : 1) * 9, away: nx + ny < 0 };
+      G.falls.push({ x: q.x, y: q.y }); G.slip = 0; G.warn = false;
+      sMeow();
+    } else {
+      const wasJ = p.j;
+      G.s += G.v * dt; advanceIndex(true);
+      if (!wasJ && R[G.i].j) { sPluck(S.scale[2], 0.04, 0.5); setTimeout(() => sPluck(S.scale[5], 0.04, 0.8), 120); }
+      G.stepAcc = (G.stepAcc || 0) + G.v * dt;
+      if (!wasJ && G.stepAcc >= 110) { G.stepAcc %= 110; sStep(); }
+      // приземление: не наказываем за угол сразу после прыжка
+      if (wasJ && !R[G.i].j) {
+        let m = Infinity; for (let k = G.i; k < R.length && L.cum[k] - G.s < 40; k++) m = Math.min(m, R[k].vs);
+        G.v = Math.min(G.v, m * 0.9); G.slip = 0;
+      }
+      G.phase += G.v * dt * 0.07;
+      if (!L.drawn[0] && !R[0].j) { L.drawn[0] = 1; L.drawnN++; }
+    }
+  }
+  sUpdate(G.fall ? 0 : G.v, G.slip);
+  if (G.s >= L.len - 0.01) { G.s = L.len; endRun('finish'); }
+}
+
+// ---------- отрисовка: пиксель-арт ----------
+// Мир рисуется в низком разрешении (один «пиксель» = PX CSS-пикселей) в изометрии 2:1.
+// Неподвижное (плита логотипа, плитка города) отрисовано заранее в двух палитрах — ночь и рассвет —
+// и привязано к палитре с дизерингом Байера; рассвет проступает через сетку дизеринга.
+
+// палитра «Лайм и графит», рассвет «олива и шалфей»
+const COMMON = { red: '#ff7a3d', white: '#f4eee4', black: '#17141f', eye: '#d8ff6a', pink: '#ff9ad5' };
+const hexRGB = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const rgba = (h, a) => `rgba(${hexRGB(h)},${a})`;
+const mixHex = (a, b, t) => '#' + hexRGB(a).map((v, i) => Math.round(v + (hexRGB(b)[i] - v) * t).toString(16).padStart(2, '0')).join('');
+function prepPal(base) {
+  const p = Object.assign({}, base, COMMON);
+  p.street = mixHex(p.bg, p.bg2, 0.5);
+  p.glowTop = mixHex(p.top, p.neon, 0.35);
+  return p;
+}
+// промежуточная палитра между ночью и рассветом
+function mixPal(a, b, t) { const o = {}; for (const k in a) o[k] = mixHex(a[k], b[k], t); return o; }
+const DAWN_STEPS = 6;
+// город: асфальт, тротуары, газоны, деревья; у зданий светлая крыша, грани темнее — так читается форма
+const NIGHT = prepPal({ bg: '#0e1114', bg2: '#1a2026', fog: '#26303a', cityT: '#46525d', cityL: '#2c353e', cityR: '#1e252c', win: '#ffd27a', win2: '#9c7a3c', winOff: '#232b33',
+  road: '#14181d', lot: '#262d34', mark: '#4c5763', grass: '#1c2a21', tree: '#203a29', treeL: '#305238', pine: '#15291f', trunk: '#2b2520',
+  top: '#8d9196', topD: '#72767c', topL: '#c4c8cc', left: '#545a61', right: '#3a3f45', rain: '#4a5a68', neon: '#c6ff00', neonM: '#7fa300', neonD: '#2f3a12' });
+const DAWN = prepPal({ bg: '#4a5640', bg2: '#a3ae8a', fog: '#e4e7cf', cityT: '#dfe3cb', cityL: '#aeb798', cityR: '#879070', win: '#f2efc8', win2: '#c6c49a', winOff: '#9ca488',
+  road: '#848c72', lot: '#b8bfa2', mark: '#e3e6d0', grass: '#9fb27f', tree: '#6c8a50', treeL: '#8cab66', pine: '#46654a', trunk: '#6b5a44',
+  top: '#d9dcc4', topD: '#bcc1a2', topL: '#f6f7e8', left: '#9aa284', right: '#737b62', rain: '#e4e7cf', neon: '#b6e000', neonM: '#7d9a00', neonD: '#2f3a12' });
+const POSTER = { sky: ['#3f4a3a', '#8e9c7a', '#e9ecd2'], sun: '#fbfbe8', city: '#232c1d', cityFar: '#6a7858', ground: ['#e9ecd2', '#b9c29f', '#5d6a4a', '#1c2218'], shade: '#151a12' };
+const palList = p => Object.values(p).filter(v => typeof v === 'string');
+
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const g2d = c => c.getContext('2d', { willReadFrequently: true });
+function hash(x, y, s) { let h = (x * 374761393 + y * 668265263 + s * 2147483647) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+
+// упорядоченный дизеринг 4×4 + привязка к палитре; полупрозрачное тоже дизерится (видно сквозь)
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+function quantize(g, w, h, palette, strength) {
+  const P = [...new Set(palette)].map(hexRGB), img = g.getImageData(0, 0, w, h), d = img.data;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4; if (d[i + 3] === 0) continue;
+    const th = BAYER[(y & 3) * 4 + (x & 3)] / 16;
+    if (d[i + 3] < 255 && d[i + 3] / 255 <= th + 0.03) { d[i + 3] = 0; continue; }
+    const t = (th - 0.47) * strength, r = d[i] + t, gg = d[i + 1] + t, b = d[i + 2] + t;
+    let best = 0, bd = 1e9;
+    for (let k = 0; k < P.length; k++) { const dr = r - P[k][0], dg = gg - P[k][1], db = b - P[k][2], dd = dr * dr * 0.9 + dg * dg * 1.2 + db * db * 0.8; if (dd < bd) { bd = dd; best = k; } }
+    d[i] = P[best][0]; d[i + 1] = P[best][1]; d[i + 2] = P[best][2]; d[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+}
+// чёткий слой: всё, что непрозрачнее порога, переносим поверх без смешивания
+function stamp(g, layer, w, h) {
+  const a = g.getImageData(0, 0, w, h), b = g2d(layer).getImageData(0, 0, w, h);
+  for (let i = 0; i < a.data.length; i += 4) if (b.data[i + 3] > 110) { a.data[i] = b.data[i]; a.data[i + 1] = b.data[i + 1]; a.data[i + 2] = b.data[i + 2]; a.data[i + 3] = 255; }
+  g.putImageData(a, 0, 0);
+}
+// маски дизеринга для перехода ночь → рассвет: k из 16 точек сетки 4×4 показывают рассвет
+const MASKS = Array.from({ length: 17 }, (_, k) => { const c = mk(4, 4), g = c.getContext('2d'); g.fillStyle = '#000'; for (let i = 0; i < 16; i++) if (BAYER[i] < k) g.fillRect(i % 4, i >> 2, 1, 1); return c; });
+
+// плита логотипа: стены по каждому отрезку контура (от дальних к ближним), потом верх с крапинками и светлой кромкой
+function drawSlab(g, pal, proj, wallH, depth, w, h, solid) {   // solid — доля стены без растворения
+  const quads = [];
+  for (const l of L.loops) {
+    const P = l.pts, n = P.length;
+    for (let i = 0; i < n; i++) { const a = P[i], b = P[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1; quads.push([a, b, Math.abs(dy) / len, depth(a, b)]); }
+  }
+  quads.sort((p, q) => p[3] - q[3]);
+  const Lc = hexRGB(pal.left), Rc = hexRGB(pal.right);
+  g.lineWidth = 1;
+  for (const [a, b, t] of quads) {
+    const A = proj(a[0], a[1]), B = proj(b[0], b[1]), col = Lc.map((v, k) => Math.round(v + (Rc[k] - v) * t)), top = Math.min(A[1], B[1]);
+    const gr = g.createLinearGradient(0, top, 0, top + wallH);
+    gr.addColorStop(0, `rgb(${col})`); gr.addColorStop(solid || 0.5, `rgb(${col})`); gr.addColorStop(1, `rgba(${col},0)`);
+    g.fillStyle = g.strokeStyle = gr;
+    g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.lineTo(B[0], B[1] + wallH); g.lineTo(A[0], A[1] + wallH); g.closePath(); g.fill(); g.stroke();
+  }
+  const topPath = new Path2D();
+  for (const l of L.loops) { l.pts.forEach((p, i) => { const q = proj(p[0], p[1]); i ? topPath.lineTo(q[0], q[1]) : topPath.moveTo(q[0], q[1]); }); topPath.closePath(); }
+  g.fillStyle = pal.top; g.fill(topPath, 'evenodd');
+  g.save(); g.clip(topPath, 'evenodd');
+  const n = Math.round(w * h * 0.025);
+  for (let k = 0; k < n; k++) { g.fillStyle = k % 3 ? pal.topD : pal.topL; g.fillRect(Math.round(hash(k, 1, 3) * w), Math.round(hash(k, 2, 3) * h), k % 5 ? 1 : 2, 1); }
+  g.restore();
+  g.strokeStyle = pal.topL; g.lineWidth = 1; g.stroke(topPath);
+}
+
+// ---------- заготовки уровня ----------
+const CITY_N = 5, PAR = 0.55;   // плитка города — 5×5 кварталов; город движется медленнее плиты
+let ART = null;
+function buildArt() {
+  const [x0, y0, x1, y1] = L.bbox, s = C.ISO_W / ((x1 - x0) + (y1 - y0));
+  const us = [x0 - y0, x1 - y0, x0 - y1, x1 - y1].map(v => v * s), vs = [x0 + y0, x1 + y0, x0 + y1, x1 + y1].map(v => v * s / 2);
+  const M = 8, U0 = Math.floor(Math.min(...us)) - M, V0 = Math.floor(Math.min(...vs)) - C.ELEV - M;
+  const w = Math.ceil(Math.max(...us)) - U0 + M, h = Math.ceil(Math.max(...vs)) - V0 + C.WALL + M;
+  ART = { s, U0, V0, w, h };
+  const proj = (x, y) => [(x - y) * s - U0, (x + y) * s / 2 - C.ELEV - V0];
+  const slab = pal => { const c = mk(w, h), g = g2d(c); drawSlab(g, pal, proj, C.WALL, (a, b) => a[0] + a[1] + b[0] + b[1], w, h); quantize(g, w, h, palList(pal), 22); return c; };
+  // шесть ступеней от ночи к рассвету; соседние почти не отличаются, поэтому переход сеткой незаметен
+  ART.slab = []; ART.city = [];
+  for (let i = 0; i < DAWN_STEPS; i++) { const pal = mixPal(NIGHT, DAWN, i / (DAWN_STEPS - 1)); ART.slab.push(slab(pal)); ART.city.push(cityTile(pal)); }
+  ART.out = mk(w, h); ART.oc = ART.out.getContext('2d');     // тёмная обводка следа
+  ART.core = mk(w, h); ART.cc = ART.core.getContext('2d');   // сам неон и лапки
+  clearTrail();
+}
+// плитка города: кварталы между дорогами, в каждом свой тип застройки; периодична по горизонтали и вертикали
+// типы: 0 сквер с деревьями · 1 частные дома · 2 панельный дом · 3 башни · 4 склад
+const BLK = 300, ROAD = 80, CITY_BL = BLK + ROAD;
+function cityTile(pal) {
+  const N = CITY_N, TH = Math.max(40, Math.round(N * CITY_BL * ART.s * PAR)), sc = TH / (N * CITY_BL), TW = TH * 2;
+  ART.citySc = sc; ART.cityTW = TW; ART.cityTH = TH;
+  const c = mk(TW, TH), g = g2d(c);
+  const p = (X, Y, Hh) => [(X - Y) * sc, (X + Y) * sc / 2 - (Hh || 0)];
+  const poly = (pts, col) => { g.fillStyle = col; g.beginPath(); pts.forEach((q, k) => k ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); g.closePath(); g.fill(); };
+  const dot = (q, col) => { g.fillStyle = col; g.fillRect(Math.round(q[0]), Math.round(q[1]), 1, 1); };
+  g.fillStyle = pal.road; g.fillRect(0, 0, TW, TH);
+  const blocks = [];
+  for (let i = -2; i <= 2 * N + 2; i++) for (let j = -N - 2; j <= N + 2; j++) blocks.push([i, j, ((i % N) + N) % N, ((j % N) + N) % N]);
+  // земля кварталов и разметка дорог
+  for (const [i, j, hi, hj] of blocks) {
+    const bx = i * CITY_BL, by = j * CITY_BL, type = Math.floor(hash(hi, hj, 1) * 5);
+    poly([p(bx, by), p(bx + BLK, by), p(bx + BLK, by + BLK), p(bx, by + BLK)], type === 0 ? pal.grass : pal.lot);
+    for (let t = 0.1; t < 1; t += 0.25) { dot(p(bx + BLK + ROAD / 2, by + CITY_BL * t), pal.mark); dot(p(bx + CITY_BL * t, by + BLK + ROAD / 2), pal.mark); }
+  }
+  // здания и деревья — от дальних к ближним
+  const items = [];
+  const box = (x, y, w, d, h, opt) => items.push([x + y + w + d, () => {
+    poly([p(x, y + d, h), p(x + w, y + d, h), p(x + w, y + d, 0), p(x, y + d, 0)], pal.cityL);
+    poly([p(x + w, y, h), p(x + w, y + d, h), p(x + w, y + d, 0), p(x + w, y, 0)], pal.cityR);
+    poly([p(x, y, h), p(x + w, y, h), p(x + w, y + d, h), p(x, y + d, h)], opt.roof || pal.cityT);
+    if (opt.win) {   // окна сеткой на обеих видимых гранях
+      const rows = Math.max(1, Math.floor(h / 3) - 1);
+      for (const face of [0, 1]) {
+        const len = face ? w : d, cols = Math.max(1, Math.floor(len * sc / 3));
+        for (let r = 0; r < rows; r++) for (let k = 0; k < cols; k++) {
+          const t = (k + 0.5) / cols, hh = 2 + r * 3, lit = hash(Math.round(x + k * 7), Math.round(y + r * 13), face + 20) < opt.win;
+          dot(face ? p(x + w * t, y + d, hh) : p(x + w, y + d * t, hh), lit ? (hash(k, r, 31) > 0.3 ? pal.win : pal.win2) : pal.winOff);
+        }
+      }
+    }
+    if (opt.antenna) { const q = p(x + w / 2, y + d / 2, h); g.fillStyle = pal.cityL; g.fillRect(Math.round(q[0]), Math.round(q[1]) - 4, 1, 4); dot([q[0], q[1] - 5], pal.win); }
+  }]);
+  const house = (x, y, w, d, h) => items.push([x + y + w + d, () => {   // домик со скатной крышей, конёк вдоль x
+    const rh = 3;
+    poly([p(x, y + d, h), p(x + w, y + d, h), p(x + w, y + d, 0), p(x, y + d, 0)], pal.cityL);
+    poly([p(x + w, y, h), p(x + w, y + d, h), p(x + w, y + d, 0), p(x + w, y, 0)], pal.cityR);
+    poly([p(x, y, h), p(x + w, y, h), p(x + w, y + d / 2, h + rh), p(x, y + d / 2, h + rh)], pal.cityR);
+    poly([p(x, y + d / 2, h + rh), p(x + w, y + d / 2, h + rh), p(x + w, y + d, h), p(x, y + d, h)], pal.cityT);
+    poly([p(x + w, y, h), p(x + w, y + d / 2, h + rh), p(x + w, y + d, h)], pal.cityR);
+    if (hash(Math.round(x), Math.round(y), 41) < 0.5) dot(p(x + w * 0.5, y + d, 2), pal.win);
+  }]);
+  // деревья двух видов: круглое лиственное и ель
+  const tree = (x, y) => items.push([x + y + 1, () => {
+    const [u, v] = p(x, y).map(Math.round);
+    g.fillStyle = pal.trunk; g.fillRect(u, v - 2, 1, 2);
+    if (hash(Math.round(x), Math.round(y), 61) < 0.45) {
+      g.fillStyle = pal.pine; g.fillRect(u, v - 9, 1, 2); g.fillRect(u - 1, v - 7, 3, 2); g.fillRect(u - 2, v - 5, 5, 3);
+      g.fillStyle = pal.treeL; g.fillRect(u - 1, v - 5, 1, 1); g.fillRect(u, v - 8, 1, 1);
+    } else {
+      g.fillStyle = pal.tree; g.fillRect(u - 1, v - 5, 3, 3); g.fillRect(u - 2, v - 4, 5, 1);
+      g.fillStyle = pal.treeL; g.fillRect(u - 1, v - 5, 1, 1); g.fillRect(u, v - 6, 1, 1);
+    }
+  }]);
+  for (const [i, j, hi, hj] of blocks) {
+    const bx = i * CITY_BL, by = j * CITY_BL, type = Math.floor(hash(hi, hj, 1) * 5), r = k => hash(hi, hj, 50 + k);
+    if (type === 0) { for (let k = 0; k < 8; k++) tree(bx + BLK * (0.12 + 0.76 * r(k)), by + BLK * (0.12 + 0.76 * r(k + 10))); }
+    if (type === 1) {
+      for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) if (r(a * 2 + b) > 0.15) house(bx + 30 + a * 145, by + 30 + b * 145, 95, 85, 5);
+      tree(bx + BLK * 0.5, by + BLK * 0.92); tree(bx + BLK * 0.92, by + BLK * 0.45);
+    }
+    if (type === 2) { box(bx + 25, by + 90, BLK - 50, 110, 16, { win: 0.35 }); tree(bx + 60, by + 250); tree(bx + 220, by + 255); }
+    if (type === 3) {
+      box(bx + 40, by + 40, 100, 100, 30 + Math.round(r(1) * 14), { win: 0.3, antenna: r(2) > 0.4 });
+      if (r(3) > 0.4) box(bx + 175, by + 170, 85, 85, 20 + Math.round(r(4) * 10), { win: 0.3 });
+      else tree(bx + 220, by + 220);
+    }
+    if (type === 4) { box(bx + 30, by + 40, BLK - 60, BLK - 110, 7, { roof: pal.cityL }); tree(bx + 40, by + 270); }
+  }
+  items.sort((a, b) => a[0] - b[0]);
+  for (const [, fn] of items) fn();
+  quantize(g, TW, TH, palList(pal), 4);
+  return c;
+}
+// редкие машины по дорогам; ночью видны фары
+const CARS = Array.from({ length: 7 }, (_, i) => ({ axis: i % 2, lane: (i * 3) % CITY_N, t: Math.random(), v: 0.012 + Math.random() * 0.012, dir: i % 3 ? 1 : -1, col: ['#d23c2a', '#2f6fb3', '#e08a1e', '#7a2f8f'][i % 4] }));
+function drawCars(cox, coy, dt, night) {
+  const N = CITY_N, P = N * CITY_BL, sc = ART.citySc, TW = ART.cityTW, TH = ART.cityTH;
+  for (const car of CARS) {
+    car.t = (car.t + car.v * dt * car.dir + 1) % 1;
+    const lane = car.lane * CITY_BL + BLK + ROAD * (car.dir > 0 ? 0.3 : 0.7);
+    const x = car.axis ? lane : car.t * P, y = car.axis ? car.t * P : lane;
+    const u = (((x - y) * sc) % TW + TW) % TW, v = (((x + y) * sc / 2) % TH + TH) % TH;
+    const du = car.axis ? -car.dir : car.dir;   // куда смотрит на экране
+    const X0 = (((cox + u) % TW) + TW) % TW - TW, Y0 = (((coy + v) % TH) + TH) % TH - TH;
+    for (let X1 = X0; X1 < LW + TW; X1 += TW) for (let Y1 = Y0; Y1 < LH + TH; Y1 += TH) {
+      const X = Math.round(X1), Y = Math.round(Y1);
+      if (X < -2 || Y < -2 || X > LW + 2 || Y > LH + 2) continue;
+      // днём — насыщенный корпус с тёмным низом, чтобы читался на светлом асфальте; ночью — фары и стопы
+      if (!night) { ctx.fillStyle = '#2f3a2a'; ctx.fillRect(X - 1, Y + 1, 3, 1); }
+      ctx.fillStyle = night ? '#2a3038' : car.col; ctx.fillRect(X - 1, Y, 3, 1);
+      if (night) { ctx.fillStyle = '#fff2b0'; ctx.fillRect(X + du, Y, 1, 1); ctx.fillStyle = '#ff4a3a'; ctx.fillRect(X - du, Y, 1, 1); }
+    }
+  }
+}
+function clearTrail() {
+  if (!ART) return;
+  ART.oc.clearRect(0, 0, ART.w, ART.h); ART.cc.clearRect(0, 0, ART.w, ART.h); ART.tDone = 1; ART.fDone = 0;
+}
+const topPx = (x, y) => [(x - y) * ART.s - ART.U0, (x + y) * ART.s / 2 - C.ELEV - ART.V0];
+// след дорисовывается по мере бега: обводка 3×3 и неон 1×1, лапки сбоку, крестики на местах срывов
+function updateTrail() {
+  const R = L.route, end = Math.min(G.i, R.length - 1), o = ART.oc, c = ART.cc;
+  for (let i = Math.max(1, ART.tDone); i <= end; i++) {
+    if (!L.drawn[i] || !L.drawn[i - 1] || R[i].j || R[i - 1].j) continue;
+    const [ax, ay] = topPx(R[i - 1].x, R[i - 1].y), [bx, by] = topPx(R[i].x, R[i].y);
+    const n = Math.max(1, Math.ceil(Math.max(Math.abs(bx - ax), Math.abs(by - ay))));
+    o.fillStyle = NIGHT.neonD; c.fillStyle = NIGHT.neon;
+    for (let k = 0; k <= n; k++) { const x = Math.round(ax + (bx - ax) * k / n), y = Math.round(ay + (by - ay) * k / n); o.fillRect(x - 1, y - 1, 3, 3); c.fillRect(x, y, 1, 1); }
+    if (i % 9 === 0) {
+      const tu = R[i].tx - R[i].ty, tv = (R[i].tx + R[i].ty) / 2, tl = Math.hypot(tu, tv) || 1, side = (i / 9) % 2 ? 1 : -1;
+      c.fillStyle = NIGHT.neonM; c.fillRect(Math.round(bx - tv / tl * 3 * side), Math.round(by + tu / tl * 3 * side), 1, 1);
+    }
+  }
+  ART.tDone = Math.max(ART.tDone, end + 1);
+  for (; ART.fDone < G.falls.length; ART.fDone++) {
+    const [x, y] = topPx(G.falls[ART.fDone].x, G.falls[ART.fDone].y), X = Math.round(x), Y = Math.round(y);
+    c.fillStyle = COMMON.red; for (const d of [-2, -1, 0, 1, 2]) { c.fillRect(X + d, Y + d, 1, 1); c.fillRect(X + d, Y - d, 1, 1); }
+  }
+}
+
+// ---------- котёнок «смокинг» по пикселям ----------
+const BODY = [
+  '............k..k..', '.w.........kk.kk..', '.k.........kkkkkk.', '..k.......kkkkkkkk', '..k.......kkkkekkp',
+  '..k.......kkkkkkk.', '...kkkkkkknnnnkk..', '..kkkkkkkkkkwwk...', '..kkkkkkkkkkkwk...', '...kkkkkkkkkkk....',
+];
+const LEGS = [
+  ['...k..k....k..k...', '..w....w..w....w..'],
+  ['....k.k.....k.k...', '....w.w.....w.w...'],
+  ['.....kk......kk...', '.....ww......ww...'],
+  ['....k.k.....k.k...', '...w...w...w...w..'],
+];
+const SIT = [
+  '.....k...k..', '.....kk.kk..', '.....kkkkk..', '....kkkkkkk.', '....kkekkek.', '....kkkpkkk.', '.....nnnnn..',
+  '....kkkkkk..', '...kkkwwwk..', '...kkkkwkkk.', 'k..kkkkkkkk.', '.k.kkkkkkkk.', '..kkkkkkkkk.', '...ww.ww.ww.',
+];
+const CAT_COL = { k: '#17141f', w: '#f4eee4', e: '#d8ff6a', p: '#ff9ad5', n: NIGHT.neon };
+function spriteCanvas(rows, flip) {
+  const c = mk(rows[0].length, rows.length), g = c.getContext('2d');
+  rows.forEach((r, j) => [...r].forEach((ch, i) => { if (ch === '.') return; g.fillStyle = CAT_COL[ch]; g.fillRect(flip ? r.length - 1 - i : i, j, 1, 1); }));
+  return c;
+}
+const CAT_RUN = [0, 1, 2, 3].map(f => [false, true].map(fl => spriteCanvas(BODY.concat(LEGS[f]), fl)));
+const CAT_SIT = spriteCanvas(SIT, false);
+
+// ---------- дождь ----------
+const RAIN = Array.from({ length: 60 }, () => ({ x: Math.random(), y: Math.random(), v: 0.8 + Math.random() * 0.5 }));
+
+// ---------- камера ----------
+function camUpdate(dt) {
+  if (!L) return;
+  if (G.state === 'intro') {
+    // заставка: камера сама плывёт вдоль контура
+    G.s += 80 * dt; if (G.s >= L.len) { G.s = 0; G.i = 0; }
+    advanceIndex(false);
+  }
+  const q = G.fall ? { x: G.fall.x, y: G.fall.y, tx: G.tan.x, ty: G.tan.y } : posAt();
+  const a = 1 - Math.exp(-dt * 6);
+  G.tan.x += (q.tx - G.tan.x) * a; G.tan.y += (q.ty - G.tan.y) * a;
+  const look = 70 + 60 * (G.v / C.VMAX);
+  const tx = q.x + G.tan.x * look, ty = q.y + G.tan.y * look;
+  const b = 1 - Math.exp(-dt * 4);
+  G.cam.x += (tx - G.cam.x) * b; G.cam.y += (ty - G.cam.y) * b;
+}
+
+// ---------- кадр ----------
+// рисует ступень a, а следующую ступень — сквозь маску дизеринга k/16
+function dawnLayer(draw, a, k) {
+  if (k <= 0) return draw(ctx, a);
+  if (k >= 16) return draw(ctx, a + 1);
+  draw(ctx, a);
+  tctx2.globalCompositeOperation = 'source-over'; tctx2.clearRect(0, 0, LW, LH);
+  draw(tctx2, a + 1);
+  tctx2.globalCompositeOperation = 'destination-in'; tctx2.fillStyle = tctx2.createPattern(MASKS[k], 'repeat'); tctx2.fillRect(0, 0, LW, LH);
+  tctx2.globalCompositeOperation = 'source-over';
+  ctx.drawImage(tmp, 0, 0);
+}
+function render(now, dt) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (!L || !ART) { ctx.fillStyle = NIGHT.bg; ctx.fillRect(0, 0, LW, LH); return; }
+  const lv = Math.min(DAWN_STEPS - 1.0001, Math.max(0, G.dawn) * (DAWN_STEPS - 1)), st = Math.floor(lv), sk = Math.round((lv - st) * 16);
+  const k = Math.round(G.dawn * 16), pal = k < 8 ? NIGHT : DAWN, s = ART.s;
+  const fu = (G.cam.x - G.cam.y) * s, fv = (G.cam.x + G.cam.y) * s / 2 - C.ELEV;
+  const ox = Math.round(LW / 2 - fu), oy = Math.round(LH * 0.5 - fv);
+  // город далеко внизу — медленнее плиты
+  const cox = Math.round(LW / 2 - fu * PAR), coy = Math.round(LH / 2 - fv * PAR + 40);
+  dawnLayer((c, i) => { const pat = c.createPattern(ART.city[i], 'repeat'); pat.setTransform(new DOMMatrix([1, 0, 0, 1, cox, coy])); c.fillStyle = pat; c.fillRect(0, 0, LW, LH); }, st, sk);
+  drawCars(cox, coy, dt, G.dawn < 0.45);
+  const offX = ox + ART.U0, offY = oy + ART.V0;
+  dawnLayer((c, i) => c.drawImage(ART.slab[i], offX, offY), st, sk);
+
+  if (G.state !== 'intro') updateTrail();
+  ctx.drawImage(ART.out, offX, offY); ctx.drawImage(ART.core, offX, offY);
+  const R = L.route, px = (x, y) => [Math.round((x - y) * s + ox), Math.round((x + y) * s / 2 - C.ELEV + oy)];
+
+  // опасные повороты впереди: оранжевый пунктир, при тревоге мигает толще
+  if (G.state === 'run' || G.state === 'ready') {
+    const v = Math.max(G.v, G.state === 'ready' ? C.VMAX * 0.6 : 0), blink = G.warn && Math.floor(now / 110) % 2;
+    ctx.fillStyle = COMMON.red;
+    for (let i = G.i; i < R.length && L.cum[i] - G.s < 420; i++) {
+      if (R[i].j || R[i].vs >= v || (i % 5) > 2) continue;
+      const [x, y] = px(R[i].x, R[i].y); ctx.fillRect(x, y, 1, 1); if (blink) ctx.fillRect(x, y - 1, 1, 1);
+    }
+  }
+
+  // котёнок
+  let showWarn = false;
+  if (G.state !== 'intro') {
+    let x, y, h, flipV = false, visible = true;
+    if (G.fall) {
+      x = G.fall.x; y = G.fall.y; h = G.fall.h; flipV = Math.floor(G.fall.t * 10) % 2 === 1;
+      // слетел через дальний край — скрывается за плитой; через ближний — падает вдоль стены
+      visible = G.fall.t < C.FALL_T * 0.7 && !(G.fall.away && h < -2);
+    }
+    else { const q = posAt(); x = q.x; y = q.y; h = q.h; const du = q.tx - q.ty; if (Math.abs(du) > 0.15) G.dir = du > 0 ? 1 : -1; }
+    const [cx, cy0] = px(x, y), cy = cy0 - Math.round(h * s);
+    if (!G.fall && h < 1) { ctx.fillStyle = pal.right; ctx.fillRect(cx - 5, cy0, 10, 1); }   // короткая тень на камне
+    if (visible) {
+      const f = Math.floor(G.phase * 0.6) % 4, bob = f % 2 ? -1 : 0, spr = CAT_RUN[f][G.dir < 0 ? 1 : 0];
+      if (flipV) { ctx.save(); ctx.translate(cx - 9, cy); ctx.scale(1, -1); ctx.drawImage(spr, 0, 0); ctx.restore(); }
+      else ctx.drawImage(spr, cx - 9, cy - 12 + bob);
+    }
+    if (G.warn && !G.fall && G.state === 'run') {
+      const pr = Math.floor(now / 120) % 2; ctx.fillStyle = COMMON.red;
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 22) ctx.fillRect(Math.round(cx + Math.cos(a) * (12 + pr)), Math.round(cy - 4 + Math.sin(a) * (5 + pr * 0.5)), 1, 1);
+      if (G.hold || G.auto) { showWarn = true; const wl = $('warn'); wl.style.left = cx * PX + 'px'; wl.style.top = (cy - 16) * PX + 'px'; }
+    }
+    if (G.slip > 0.15 && !G.fall) { ctx.fillStyle = COMMON.red; for (let j = 0; j < 3; j++) ctx.fillRect(cx - G.dir * (11 + j * 3), cy - 2 - j, 2, 1); }
+  }
+  $('warn').hidden = !showWarn;
+
+  // дождь — ночью, к рассвету стихает
+  const nr = Math.round(RAIN.length * Math.max(0, 1 - k / 12));
+  ctx.fillStyle = pal.rain;
+  for (let j = 0; j < RAIN.length; j++) {
+    const d = RAIN[j]; d.y += d.v * dt * 0.9; d.x -= d.v * dt * 0.12; if (d.y > 1.02) { d.y = -0.02; d.x = Math.random() * 1.1; } if (d.x < -0.02) d.x += 1.1;
+    if (j >= nr) continue;
+    const x = Math.round(d.x * LW), y = Math.round(d.y * LH); ctx.fillRect(x, y, 1, 1); ctx.fillRect(x - 1, y + 1, 1, 1); ctx.fillRect(x - 1, y + 2, 1, 1);
+  }
+}
+
+function fmtTime(t) {   // 1:02.4
+  t = Math.max(0, t); const m = Math.floor(t / 60), s = t - m * 60;
+  return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+}
+// пиксельная лапка: подушечка и четыре пальца
+const PAW_SVG = '<svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor"><rect x="0" y="2" width="2" height="2"/><rect x="2" y="0" width="2" height="2"/><rect x="5" y="0" width="2" height="2"/><rect x="7" y="2" width="2" height="2"/><rect x="3" y="4" width="3" height="1"/><rect x="2" y="5" width="5" height="3"/><rect x="3" y="8" width="3" height="1"/></svg>';
+const PAWS_N = 8;
+$('speed').innerHTML = PAW_SVG.repeat(PAWS_N);
+const PAWS = [...$('speed').children];
+let lastHud = '', lastPaws = -1;
+function hudUpdate() {
+  if (!L) return;
+  // на табло — время сразу со штрафом, чтобы срыв было видно
+  const pc = Math.floor(L.drawnN / L.runN * 100), tt = fmtTime(finalTime()), k = pc + '|' + tt;
+  if (k !== lastHud) { $('pct').textContent = pc + '%'; $('time').textContent = tt; lastHud = k; }
+  const np = Math.round((G.v - C.VMIN) / (C.VMAX - C.VMIN) * (PAWS_N - 1)) + 1;   // хотя бы одна лапка — котёнок всегда идёт
+  if (np !== lastPaws) { PAWS.forEach((p, i) => p.classList.toggle('on', i < np)); lastPaws = np; }
+}
+
+// ---------- постер 1080×1920: рассвет, логотип прямо, котёнок сидит на букве ----------
+// подпись — по числу срывов
+const CAPTIONS = [
+  [0, 'Ни одного срыва. Котёнок обошёл твой логотип целиком и теперь считает его своим.'],
+  [2, 'Почти без промахов. Пара углов осталась непокорённой — котёнок к ним ещё вернётся.'],
+  [5, 'Углы оказались острее, чем казалось. Но котёнок дошёл до конца — и это главное.'],
+  [Infinity, 'Котёнок падал, вставал и снова бежал. Твой логотип того стоил.'],
+];
+function wrapText(c, text, x, y, maxW, lh) {
+  const words = text.split(' '); let line = '';
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (c.measureText(t).width > maxW && line) { c.fillText(line, x, y); y += lh; line = w; } else line = t; }
+  c.fillText(line, x, y);
+}
+// Постер на рассвете «олива и шалфей»: город на горизонте, логотип прямо, снизу время, срывы и подпись о прохождении.
+function makePoster() {
+  const vw = 180, vh = 320, lo = mk(vw, vh), c = g2d(lo), pal = DAWN, P = POSTER, winCol = P.sun;
+  const hz = 86;
+  const sky = c.createLinearGradient(0, 0, 0, hz); sky.addColorStop(0, P.sky[0]); sky.addColorStop(0.55, P.sky[1]); sky.addColorStop(1, P.sky[2]);
+  c.fillStyle = sky; c.fillRect(0, 0, vw, hz);
+  const sun = c.createRadialGradient(132, hz, 0, 132, hz, 44); sun.addColorStop(0, rgba(P.sun, 0.95)); sun.addColorStop(0.3, rgba(P.sun, 0.55)); sun.addColorStop(1, rgba(P.sun, 0));
+  c.fillStyle = sun; c.fillRect(0, 0, vw, hz);
+  c.fillStyle = P.sun; c.beginPath(); c.arc(132, hz, 9, Math.PI, 0); c.fill();
+  const gr = c.createLinearGradient(0, hz, 0, vh); P.ground.forEach((col, i) => gr.addColorStop([0, 0.35, 0.75, 1][i], col));
+  c.fillStyle = gr; c.fillRect(0, hz, vw, vh - hz);
+  // город на горизонте в два плана: дальний светлее, ближний — тёмный силуэт с окнами
+  for (let x = -3, k = 50; x < vw; k++) {
+    const w = 6 + Math.floor(hash(k, 1, 8) * 10), h = 8 + Math.floor(hash(k, 2, 8) ** 1.5 * 20);
+    c.fillStyle = P.cityFar; c.fillRect(x, hz - h, w, h + 1);
+    if (hash(k, 4, 8) > 0.75) c.fillRect(x + Math.floor(w / 2), hz - h - 4, 1, 4);
+    x += w + (hash(k, 3, 8) > 0.6 ? 1 : 0);
+  }
+  for (let x = 0, k = 0; x < vw; k++) {
+    const w = 5 + Math.floor(hash(k, 1, 8) * 9), h = 3 + Math.floor(hash(k, 2, 8) ** 2 * 16);
+    c.fillStyle = P.city; c.fillRect(x, hz - h, w, h + 1);
+    c.fillStyle = winCol; for (let j = 0; j < 3; j++) if (hash(k, j, 9) > 0.55) c.fillRect(x + 1 + Math.floor(hash(k, j, 10) * (w - 2)), hz - h + 2 + Math.floor(hash(k, j, 11) * Math.max(1, h - 3)), 1, 1);
+    x += w + (hash(k, 3, 8) > 0.7 ? 2 : 0);
+  }
+  // логотип прямо (не в изометрии — так он читается), объём вниз
+  const [x0, y0, x1, y1] = L.bbox, bw = x1 - x0, bh = y1 - y0, kk = 0.78, Hs = 6;
+  const s = Math.min(150 / bw, 104 / (bh * kk)), ox = (vw - bw * s) / 2, oy = 108;
+  const proj = (x, y) => [ox + (x - x0) * s, oy + (y - y0) * s * kk - Hs];
+  drawSlab(c, pal, proj, 24, (a, b) => a[1] + b[1], vw, vh);
+  const R = L.route;
+  const trail = (g, lw, col) => {
+    g.strokeStyle = col; g.lineWidth = lw; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); let pen = false;
+    for (let i = 0; i < R.length; i++) { if (L.drawn[i] && !R[i].j) { const q = proj(R[i].x, R[i].y); pen ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); pen = true; } else pen = false; }
+    g.stroke();
+  };
+  trail(c, 4, rgba(pal.neon, 0.3));
+  const sh = c.createLinearGradient(0, 232, 0, vh); sh.addColorStop(0, rgba(P.shade, 0)); sh.addColorStop(0.3, rgba(P.shade, 0.85)); sh.addColorStop(1, P.shade);
+  c.fillStyle = sh; c.fillRect(0, 232, vw, vh - 232);
+  quantize(c, vw, vh, palList(pal).concat(P.sky, P.sun, P.city, P.cityFar, P.ground, P.shade, winCol), 20);
+  const layer = mk(vw, vh), lg = layer.getContext('2d');
+  trail(lg, 4, pal.neonD); trail(lg, 2, pal.neon);
+  stamp(c, layer, vw, vh);
+  // котёнок сидит на самой верхней точке правой части логотипа
+  let seat = null;
+  for (const p of R) if (!p.j && p.x > x0 + bw * 0.45 && (!seat || p.y < seat.y)) seat = p;
+  if (seat) { const [sx, sy] = proj(seat.x, seat.y); c.drawImage(CAT_SIT, Math.round(sx) - 6, Math.round(sy) - 14); }
+
+  const out = mk(1080, 1920), o = out.getContext('2d');
+  o.imageSmoothingEnabled = false; o.drawImage(lo, 0, 0, 1080, 1920);
+  o.fillStyle = '#f4eee4'; o.textBaseline = 'alphabetic';
+  o.font = '28px "Press Start 2P"'; o.fillText('МУРШРУТ', 72, 110);
+  o.textAlign = 'right'; o.globalAlpha = 0.75; o.font = '24px "Press Start 2P"'; o.fillText(new Date().toLocaleDateString('ru-RU'), 1008, 110); o.globalAlpha = 1; o.textAlign = 'left';
+  const nf = G.falls.length;
+  o.font = '140px "Press Start 2P"'; o.fillText(fmtTime(finalTime()), 66, 1520);
+  o.fillStyle = NIGHT.neon; o.font = '600 44px "Pixelify Sans"';
+  const rec = G.record ? ' · новый рекорд' : G.best ? ' · рекорд ' + fmtTime(G.best) : '';
+  o.fillText((nf ? `срывов: ${nf} (+${nf * C.PEN} с)` : 'без единого срыва') + rec, 72, 1600);
+  o.fillStyle = '#f4eee4'; o.font = '400 50px "Pixelify Sans"';
+  wrapText(o, CAPTIONS.find(([m]) => nf <= m)[1], 72, 1690, 940, 62);
+  o.globalAlpha = 0.6; o.font = '400 34px "Pixelify Sans"'; o.fillText('Погуляй с котом по своей картинке · RGBY', 72, 1862); o.globalAlpha = 1;
+  return out;
+}
+
+// ---------- цикл ----------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.033, (now - last) / 1000); last = now;
+  G.fps += (1 / Math.max(dt, 1e-3) - G.fps) * 0.05;
+  update(dt); camUpdate(dt);
+  // небо: ночь в начале заезда → рассвет к концу времени
+  // цикл: 80 с от ночи к рассвету, потом за несколько секунд снова ночь
+  const cyc = G.t % (C.CYCLE + C.NIGHT_BACK);
+  const cycDawn = cyc < C.CYCLE ? Math.pow(cyc / C.CYCLE, 1.3) : 1 - (cyc - C.CYCLE) / C.NIGHT_BACK;
+  const dawnT = !L ? 0 : G.state === 'run' ? cycDawn : G.state === 'ready' || G.state === 'intro' ? 0 : G.dawn;
+  G.dawn += (dawnT - G.dawn) * (1 - Math.exp(-dt * 1.5));
+  render(now, dt);
+  if (G.state === 'run' || G.state === 'ready') hudUpdate();
+  if (DEBUG && L) $('dbg').textContent = `fps ${G.fps | 0}  px ${PX} (${LW}×${LH})\nv ${G.v | 0}  vs ${L.route[G.i].vs === Infinity ? '∞' : L.route[G.i].vs | 0}\nslip ${G.slip.toFixed(2)}\ns ${G.s | 0}/${L.len | 0}\nloops ${L.loops.length}  pts ${L.route.length}\nt ${G.t.toFixed(1)}  ideal ${L.ideal.toFixed(1)}  dawn ${G.dawn.toFixed(2)}\nauto ${G.auto} [A]`;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+// шрифты разбиты на поднаборы — заранее просим кириллицу, иначе постер нарисуется запасным шрифтом
+if (document.fonts) { const smp = 'МУРШРУТпройденоПОRGBY0123456789%·'; Promise.all([document.fonts.load('20px "Press Start 2P"', smp), document.fonts.load('20px "Pixelify Sans"', smp), document.fonts.load('600 20px "Pixelify Sans"', smp)]).catch(() => {}); }
+// ---------- заготовки для публикации (только для разработки: ?build) ----------
+// голова котёнка для иконок: k — шерсть, e — глаза, p — нос
+const ICON_HEAD = ['.k........k.', '.kk......kk.', '.kkk....kkk.', '.kkkkkkkkkk.', 'kkkkkkkkkkkk', 'kkeekkkkeekk', 'kkeekkkkeekk', 'kkkkkppkkkkk', '.kkkkkkkkkk.', '..kkkkkkkk..'];
+function makeIcon(size) {
+  const n = 16, lo = mk(n, n), c = lo.getContext('2d');
+  c.fillStyle = NIGHT.neon; c.fillRect(0, 0, n, n);
+  const col = { k: '#17141f', e: '#f4eee4', p: '#ff9ad5' };
+  ICON_HEAD.forEach((r, j) => [...r].forEach((ch, i) => { if (ch !== '.') { c.fillStyle = col[ch]; c.fillRect(2 + i, 4 + j, 1, 1); } }));
+  const out = mk(size, size), o = out.getContext('2d'); o.imageSmoothingEnabled = false; o.drawImage(lo, 0, 0, size, size);
+  return out;
+}
+function makeOG() {
+  const vw = 200, vh = 105, lo = mk(vw, vh), c = g2d(lo), pal = DAWN, P = POSTER, hz = 64;
+  const sky = c.createLinearGradient(0, 0, 0, hz); sky.addColorStop(0, P.sky[0]); sky.addColorStop(0.55, P.sky[1]); sky.addColorStop(1, P.sky[2]);
+  c.fillStyle = sky; c.fillRect(0, 0, vw, hz);
+  const sun = c.createRadialGradient(176, hz, 0, 176, hz, 34); sun.addColorStop(0, rgba(P.sun, 0.95)); sun.addColorStop(0.3, rgba(P.sun, 0.5)); sun.addColorStop(1, rgba(P.sun, 0));
+  c.fillStyle = sun; c.fillRect(0, 0, vw, hz); c.fillStyle = P.sun; c.beginPath(); c.arc(176, hz, 7, Math.PI, 0); c.fill();
+  const gr = c.createLinearGradient(0, hz, 0, vh); P.ground.forEach((col, i) => gr.addColorStop([0, 0.35, 0.75, 1][i], col));
+  c.fillStyle = gr; c.fillRect(0, hz, vw, vh - hz);
+  for (let x = -3, k = 50; x < vw; k++) { const w = 6 + Math.floor(hash(k, 1, 8) * 10), h = 6 + Math.floor(hash(k, 2, 8) ** 1.5 * 16); c.fillStyle = P.cityFar; c.fillRect(x, hz - h, w, h + 1); x += w + (hash(k, 3, 8) > 0.6 ? 1 : 0); }
+  for (let x = 0, k = 0; x < vw; k++) {
+    const w = 5 + Math.floor(hash(k, 1, 8) * 9), h = 3 + Math.floor(hash(k, 2, 8) ** 2 * 12);
+    c.fillStyle = P.city; c.fillRect(x, hz - h, w, h + 1);
+    c.fillStyle = P.sun; for (let j = 0; j < 2; j++) if (hash(k, j, 9) > 0.55) c.fillRect(x + 1 + Math.floor(hash(k, j, 10) * (w - 2)), hz - h + 2 + Math.floor(hash(k, j, 11) * Math.max(1, h - 3)), 1, 1);
+    x += w + (hash(k, 3, 8) > 0.7 ? 2 : 0);
+  }
+  // логотип справа, след пройден целиком
+  const [x0, y0, x1, y1] = L.bbox, bw = x1 - x0, bh = y1 - y0, kk = 0.78;
+  const s = Math.min(78 / bw, 60 / (bh * kk)), ox = 158 - bw * s / 2, oy = 58 - bh * s * kk / 2;
+  const proj = (x, y) => [ox + (x - x0) * s, oy + (y - y0) * s * kk];
+  drawSlab(c, pal, proj, 12, (a, b) => a[1] + b[1], vw, vh, 0.6);
+  const R = L.route;
+  const trail = (g, lw, col) => { g.strokeStyle = col; g.lineWidth = lw; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); let pen = false; for (const p of R) { if (!p.j) { const q = proj(p.x, p.y); pen ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); pen = true; } else pen = false; } g.stroke(); };
+  trail(c, 3, rgba(pal.neon, 0.3));
+  // затемнение слева — под текст
+  const sh = c.createLinearGradient(0, 0, 120, 0); sh.addColorStop(0, rgba(P.shade, 0.88)); sh.addColorStop(0.6, rgba(P.shade, 0.55)); sh.addColorStop(1, rgba(P.shade, 0));
+  c.fillStyle = sh; c.fillRect(0, 0, 120, vh);
+  quantize(c, vw, vh, palList(pal).concat(P.sky, P.sun, P.city, P.cityFar, P.ground, P.shade), 18);
+  const layer = mk(vw, vh), lg = layer.getContext('2d'); trail(lg, 3, pal.neonD); trail(lg, 1.6, pal.neon); stamp(c, layer, vw, vh);
+  let seat = null; for (const p of R) if (!p.j && p.x > x0 + bw * 0.45 && (!seat || p.y < seat.y)) seat = p;
+  if (seat) { const [sx, sy] = proj(seat.x, seat.y); c.drawImage(CAT_SIT, Math.round(sx) - 6, Math.round(sy) - 14); }
+  const out = mk(1200, 630), o = out.getContext('2d'); o.imageSmoothingEnabled = false; o.drawImage(lo, 0, 0, 1200, 630);
+  o.textBaseline = 'alphabetic'; o.shadowColor = '#000000aa'; o.shadowOffsetY = 6;
+  o.fillStyle = NIGHT.neon; o.font = '70px "Press Start 2P"'; o.fillText('МУРШРУТ', 64, 245);
+  o.fillStyle = '#f4eee4'; o.font = '600 50px "Pixelify Sans"'; o.fillText('Отдохни.', 68, 340); o.fillText('Побудь котом', 68, 400); o.fillText('пару минут', 68, 460);
+  o.shadowOffsetY = 0; o.globalAlpha = 0.75; o.font = '400 28px "Pixelify Sans"'; o.fillText('Погуляй с котом по своей картинке · RGBY', 68, 560);
+  return out;
+}
+if (Q.has('build')) {
+  (document.fonts ? Promise.all([document.fonts.load('20px "Press Start 2P"', 'МУРШРУТ'), document.fonts.load('600 20px "Pixelify Sans"', 'ОПотдохниRGBY'), document.fonts.load('400 20px "Pixelify Sans"', 'ОПотдохниRGBY')]) : Promise.resolve()).then(async () => {
+    L = buildLevel({ type: 'rgby' });
+    const save = (name, cnv) => new Promise(r => cnv.toBlob(b => fetch('/__save/' + name, { method: 'PUT', body: b }).then(x => x.text()).then(r), 'image/png'));
+    const done = [await save('og.png', makeOG()), await save('apple-touch-icon.png', makeIcon(180)), await save('favicon-32.png', makeIcon(32)), await save('icon-512.png', makeIcon(512))];
+    document.title = 'build: ' + done.join(', ');
+  });
+} else if (Q.has('posters')) {
+  // просмотр постера: автопилот проходит RGBY (с парой срывов) и показывает постер
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+    startLevel({ type: 'rgby' }); beginRun(); sMusic(false);
+    for (let n = 0; G.state === 'run' && n < 60 * 300; n++) { G.auto = (n % 900) < 820; G.hold = true; update(1 / 60); }
+    G.hold = false; G.auto = false;
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed;inset:0;z-index:9;background:#0e1114;display:flex;gap:16px;justify-content:center;align-items:center;padding:16px;overflow:auto;touch-action:pan-x pan-y';
+    const im = new Image(); im.src = makePoster().toDataURL('image/png'); im.style.cssText = 'height:min(92vh,960px);image-rendering:pixelated'; box.appendChild(im);
+    document.body.appendChild(box);
+  });
+} else if (Q.has('demo')) startLevel({ type: 'rgby' });
+else {
+  // заставка за стартовым экраном: трасса RGBY, камера плывёт вдоль контура
+  try { L = buildLevel({ type: 'rgby' }); buildArt(); const p = L.route[0]; G.cam = { x: p.x, y: p.y }; G.v = C.VMIN; } catch (e) { console.warn(e); }
+}
+</script>
+</body>
+</html>
