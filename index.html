@@ -1084,12 +1084,14 @@ function makeIcon(size) {
   const out = mk(size, size), o = out.getContext('2d'); o.imageSmoothingEnabled = false; o.drawImage(lo, 0, 0, size, size);
   return out;
 }
+// превью ссылки 1200×630. Мессенджеры подрезают края и показывают картинку мелко,
+// поэтому всё важное — в безопасной зоне с отступом, текста мало и он крупный, дизеринг мягкий.
 function makeOG() {
-  const vw = 200, vh = 105, lo = mk(vw, vh), c = g2d(lo), pal = DAWN, P = POSTER, hz = 64;
+  const vw = 200, vh = 105, lo = mk(vw, vh), c = g2d(lo), pal = DAWN, P = POSTER, hz = 66;
   const sky = c.createLinearGradient(0, 0, 0, hz); sky.addColorStop(0, P.sky[0]); sky.addColorStop(0.55, P.sky[1]); sky.addColorStop(1, P.sky[2]);
   c.fillStyle = sky; c.fillRect(0, 0, vw, hz);
-  const sun = c.createRadialGradient(176, hz, 0, 176, hz, 34); sun.addColorStop(0, rgba(P.sun, 0.95)); sun.addColorStop(0.3, rgba(P.sun, 0.5)); sun.addColorStop(1, rgba(P.sun, 0));
-  c.fillStyle = sun; c.fillRect(0, 0, vw, hz); c.fillStyle = P.sun; c.beginPath(); c.arc(176, hz, 7, Math.PI, 0); c.fill();
+  const sun = c.createRadialGradient(150, hz, 0, 150, hz, 40); sun.addColorStop(0, rgba(P.sun, 0.95)); sun.addColorStop(0.3, rgba(P.sun, 0.5)); sun.addColorStop(1, rgba(P.sun, 0));
+  c.fillStyle = sun; c.fillRect(0, 0, vw, hz); c.fillStyle = P.sun; c.beginPath(); c.arc(150, hz, 8, Math.PI, 0); c.fill();
   const gr = c.createLinearGradient(0, hz, 0, vh); P.ground.forEach((col, i) => gr.addColorStop([0, 0.35, 0.75, 1][i], col));
   c.fillStyle = gr; c.fillRect(0, hz, vw, vh - hz);
   for (let x = -3, k = 50; x < vw; k++) { const w = 6 + Math.floor(hash(k, 1, 8) * 10), h = 6 + Math.floor(hash(k, 2, 8) ** 1.5 * 16); c.fillStyle = P.cityFar; c.fillRect(x, hz - h, w, h + 1); x += w + (hash(k, 3, 8) > 0.6 ? 1 : 0); }
@@ -1099,28 +1101,30 @@ function makeOG() {
     c.fillStyle = P.sun; for (let j = 0; j < 2; j++) if (hash(k, j, 9) > 0.55) c.fillRect(x + 1 + Math.floor(hash(k, j, 10) * (w - 2)), hz - h + 2 + Math.floor(hash(k, j, 11) * Math.max(1, h - 3)), 1, 1);
     x += w + (hash(k, 3, 8) > 0.7 ? 2 : 0);
   }
-  // логотип справа, след пройден целиком
+  // логотип — справа, но не у края: правая граница ~x=182 из 200
   const [x0, y0, x1, y1] = L.bbox, bw = x1 - x0, bh = y1 - y0, kk = 0.78;
-  const s = Math.min(78 / bw, 60 / (bh * kk)), ox = 158 - bw * s / 2, oy = 58 - bh * s * kk / 2;
+  const s = Math.min(64 / bw, 54 / (bh * kk)), ox = 150 - bw * s / 2, oy = 60 - bh * s * kk / 2;
   const proj = (x, y) => [ox + (x - x0) * s, oy + (y - y0) * s * kk];
-  drawSlab(c, pal, proj, 12, (a, b) => a[1] + b[1], vw, vh, 0.6);
+  drawSlab(c, pal, proj, 9, (a, b) => a[1] + b[1], vw, vh, 0.6);
   const R = L.route;
   const trail = (g, lw, col) => { g.strokeStyle = col; g.lineWidth = lw; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); let pen = false; for (const p of R) { if (!p.j) { const q = proj(p.x, p.y); pen ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); pen = true; } else pen = false; } g.stroke(); };
-  trail(c, 3, rgba(pal.neon, 0.3));
+  trail(c, 4, rgba(pal.neon, 0.35));
   // затемнение слева — под текст
-  const sh = c.createLinearGradient(0, 0, 120, 0); sh.addColorStop(0, rgba(P.shade, 0.88)); sh.addColorStop(0.6, rgba(P.shade, 0.55)); sh.addColorStop(1, rgba(P.shade, 0));
-  c.fillStyle = sh; c.fillRect(0, 0, 120, vh);
-  quantize(c, vw, vh, palList(pal).concat(P.sky, P.sun, P.city, P.cityFar, P.ground, P.shade), 18);
+  const sh = c.createLinearGradient(0, 0, 112, 0); sh.addColorStop(0, rgba(P.shade, 0.92)); sh.addColorStop(0.65, rgba(P.shade, 0.6)); sh.addColorStop(1, rgba(P.shade, 0));
+  c.fillStyle = sh; c.fillRect(0, 0, 112, vh);
+  quantize(c, vw, vh, palList(pal).concat(P.sky, P.sun, P.city, P.cityFar, P.ground, P.shade, mixHex(pal.top, pal.neon, 0.35)), 8);
   const layer = mk(vw, vh), lg = layer.getContext('2d'); trail(lg, 3, pal.neonD); trail(lg, 1.6, pal.neon); stamp(c, layer, vw, vh);
-  let seat = null; for (const p of R) if (!p.j && p.x > x0 + bw * 0.45 && (!seat || p.y < seat.y)) seat = p;
-  if (seat) { const [sx, sy] = proj(seat.x, seat.y); c.drawImage(CAT_SIT, Math.round(sx) - 6, Math.round(sy) - 14); }
+  // котёнок вдвое крупнее, сидит на верхней точке логотипа
+  let seat = null; for (const p of R) if (!p.j && p.x > x0 + bw * 0.5 && (!seat || p.y < seat.y)) seat = p;
+  if (seat) { const [sx, sy] = proj(seat.x, seat.y); c.imageSmoothingEnabled = false; c.drawImage(CAT_SIT, Math.round(sx) - 12, Math.round(sy) - 27, 24, 28); }
   const out = mk(1200, 630), o = out.getContext('2d'); o.imageSmoothingEnabled = false; o.drawImage(lo, 0, 0, 1200, 630);
-  o.textBaseline = 'alphabetic'; o.shadowColor = '#000000aa'; o.shadowOffsetY = 6;
-  o.fillStyle = NIGHT.neon; o.font = '70px "Press Start 2P"'; o.fillText('МУРШРУТ', 64, 245);
-  o.fillStyle = '#f4eee4'; o.font = '600 50px "Pixelify Sans"'; o.fillText('Отдохни.', 68, 340); o.fillText('Побудь котом', 68, 400); o.fillText('пару минут', 68, 460);
-  o.shadowOffsetY = 0; o.globalAlpha = 0.75; o.font = '400 28px "Pixelify Sans"'; o.fillText('Погуляй с котом по своей картинке · RGBY', 68, 560);
+  o.textBaseline = 'alphabetic'; o.shadowColor = '#000000b0'; o.shadowOffsetY = 6;
+  o.fillStyle = '#f4eee4'; o.globalAlpha = 0.85; o.font = '26px "Press Start 2P"'; o.fillText('ИГРА ОТ RGBY', 84, 150); o.globalAlpha = 1;
+  o.fillStyle = NIGHT.neon; o.font = '76px "Press Start 2P"'; o.fillText('МУРШРУТ', 80, 250);
+  o.fillStyle = '#f4eee4'; o.font = '600 60px "Pixelify Sans"'; o.fillText('Побудь котом', 84, 370); o.fillText('пару минут', 84, 440);
   return out;
 }
+
 if (Q.has('build')) {
   (document.fonts ? Promise.all([document.fonts.load('20px "Press Start 2P"', 'МУРШРУТ'), document.fonts.load('600 20px "Pixelify Sans"', 'ОПотдохниRGBY'), document.fonts.load('400 20px "Pixelify Sans"', 'ОПотдохниRGBY')]) : Promise.resolve()).then(async () => {
     L = buildLevel({ type: 'rgby' });
